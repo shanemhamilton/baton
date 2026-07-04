@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Baton — pass the baton, cleanly</title>
+<meta name="description" content="Baton is a portable AI session-handoff skill: zero-context-loss handoffs that tell the next session its model tier, solo-vs-swarm mode, review depth, and to fan out subagents in parallel." />
+<meta name="theme-color" content="#0e1116" />
+<meta property="og:title" content="Baton — pass the baton, cleanly" />
+<meta property="og:description" content="Zero-context-loss AI session handoffs. Tell the next session who it is — and watch a swarm outrun a solo runner." />
+<meta property="og:type" content="website" />
+<style>
+  :root{
+    --bg:#0e1116; --surface:#171b22; --surface2:#1d2330; --line:#262c36;
+    --text:#e6e9ef; --muted:#9aa4b2;
+    --baton:#ff8a3d; --gold:#ffd166;
+    --solo:#7fb2ff; --swarm:#b48cff; --go:#4bd6c4;
+    --maxw:1040px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+    line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  a{color:var(--gold);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  .mono{font-family:var(--mono)}
+  h1,h2,h3{line-height:1.15;letter-spacing:-.02em;margin:0}
+
+  /* ---------- top bar ---------- */
+  header.nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+    background:rgba(14,17,22,.72);border-bottom:1px solid var(--line)}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .brand .dot{font-size:20px}
+  .nav a.ghlink{font-size:14px;color:var(--muted);border:1px solid var(--line);
+    padding:7px 13px;border-radius:8px}
+  .nav a.ghlink:hover{color:var(--text);border-color:var(--baton);text-decoration:none}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;padding:74px 0 40px;text-align:center;overflow:hidden}
+  .hero h1{font-size:clamp(40px,8vw,76px);font-weight:800}
+  .hero h1 .grad{
+    background:linear-gradient(100deg,var(--gold),var(--baton) 55%,var(--swarm));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{color:var(--muted);font-size:clamp(16px,2.4vw,21px);max-width:640px;margin:18px auto 0}
+  .kicker{display:inline-block;font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--baton);border:1px solid var(--line);
+    background:var(--surface);padding:6px 12px;border-radius:999px;margin-bottom:22px}
+
+  /* ---------- relay track hero animation ---------- */
+  .track{position:relative;height:78px;max-width:560px;margin:34px auto 6px;
+    border-top:2px dashed var(--line);border-bottom:2px dashed var(--line)}
+  .track .laneline{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
+  .runner{position:absolute;top:50%;transform:translateY(-50%);font-size:30px;
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  .r1{left:6%;animation:jog 2.6s ease-in-out infinite}
+  .r2{right:6%;animation:jog 2.6s ease-in-out infinite .3s}
+  .baton{position:absolute;top:50%;font-size:20px;
+    animation:pass 2.6s cubic-bezier(.5,0,.5,1) infinite}
+  @keyframes pass{
+    0%,8%{left:11%;transform:translateY(-50%) rotate(0deg);opacity:1}
+    46%,54%{left:50%;transform:translateY(-140%) rotate(180deg)}
+    92%,100%{left:87%;transform:translateY(-50%) rotate(360deg);opacity:1}
+  }
+  @keyframes jog{0%,100%{transform:translateY(-50%)}50%{transform:translateY(-62%)}}
+
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+  .btn{font-family:var(--font);font-size:15px;font-weight:600;border-radius:10px;
+    padding:12px 20px;cursor:pointer;border:1px solid var(--line);
+    background:var(--surface);color:var(--text);transition:.15s}
+  .btn.primary{background:linear-gradient(100deg,var(--baton),#ff6f3d);border-color:transparent;color:#1a0f07}
+  .btn.primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn:hover{border-color:var(--baton)}
+
+  /* ---------- install strip ---------- */
+  .install{max-width:680px;margin:26px auto 0;display:flex;align-items:stretch;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0e13}
+  .install code{flex:1;font-family:var(--mono);font-size:13px;color:#cdd6e4;
+    padding:14px 16px;text-align:left;overflow-x:auto;white-space:nowrap}
+  .install button{border:0;border-left:1px solid var(--line);background:var(--surface2);
+    color:var(--text);padding:0 18px;cursor:pointer;font-weight:600;font-size:13px}
+  .install button:hover{background:var(--baton);color:#1a0f07}
+
+  /* ---------- sections ---------- */
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--baton);margin-bottom:12px}
+  section h2{font-size:clamp(26px,4vw,38px);font-weight:800;margin-bottom:10px}
+  section .lead{color:var(--muted);max-width:680px;font-size:17px}
+
+  /* ---------- swarm demo ---------- */
+  .demo{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:26px;margin-top:26px}
+  .demo-controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0b0e13}
+  .toggle button{border:0;background:transparent;color:var(--muted);font-weight:600;
+    padding:9px 18px;cursor:pointer;font-size:14px;font-family:var(--font)}
+  .toggle button.on[data-mode="solo"]{background:var(--solo);color:#08131f}
+  .toggle button.on[data-mode="swarm"]{background:var(--swarm);color:#140a24}
+  .demo-controls .go{margin-left:auto}
+  .clocks{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:18px}
+  .clock{min-width:150px}
+  .clock .lab{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted)}
+  .clock .val{font-family:var(--mono);font-size:30px;font-weight:700;line-height:1.1}
+  .clock .val.win{color:var(--go)}
+  .clock .val.lose{color:var(--muted);text-decoration:line-through;text-decoration-color:#4a5162}
+  .lanes{display:flex;flex-direction:column;gap:11px}
+  .lane{display:grid;grid-template-columns:118px 1fr 54px;align-items:center;gap:12px}
+  .lane .name{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
+  .bartrack{position:relative;height:22px;background:#0b0e13;border:1px solid var(--line);
+    border-radius:6px;overflow:hidden}
+  .bar{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px 0 0 5px}
+  .bar.solo{background:linear-gradient(90deg,#3a6bb0,var(--solo))}
+  .bar.swarm{background:linear-gradient(90deg,#6d4fb0,var(--swarm))}
+  .lane .dur{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+  .lane .tick{opacity:0;transition:opacity .2s;color:var(--go)}
+  .lane.done .tick{opacity:1}
+  .demo-note{margin-top:18px;font-size:14px;color:var(--muted)}
+  .demo-note b{color:var(--text)}
+
+  /* ---------- section 0 card ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:26px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card h3{font-size:19px;margin-bottom:6px}
+  .doc{background:#0b0e13;border:1px solid var(--line);border-radius:14px;padding:20px;
+    font-family:var(--mono);font-size:12.5px;line-height:1.75;color:#c7d0de;overflow-x:auto}
+  .doc .h{color:var(--gold)}
+  .doc .k{color:var(--baton)}
+  .doc .c{color:#5f6b7d}
+  .doc .s{color:var(--swarm)}
+
+  /* ---------- anatomy list ---------- */
+  .rows{margin-top:24px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .row{display:grid;grid-template-columns:56px 200px 1fr;gap:14px;padding:13px 18px;
+    border-top:1px solid var(--line);align-items:baseline}
+  .row:first-child{border-top:0}
+  .row.zero{background:linear-gradient(90deg,rgba(180,140,255,.08),transparent)}
+  .row .num{font-family:var(--mono);color:var(--baton);font-weight:700}
+  .row .nm{font-weight:600}
+  .row .ds{color:var(--muted);font-size:14.5px}
+  @media(max-width:680px){.row{grid-template-columns:44px 1fr}.row .ds{grid-column:1/-1}}
+
+  /* ---------- footer ---------- */
+  footer{padding:48px 0 64px;border-top:1px solid var(--line);text-align:center;color:var(--muted)}
+  footer .attr{max-width:620px;margin:0 auto 18px;font-size:14.5px}
+  footer .heart{color:var(--baton)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:4px 11px;margin:3px}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <div class="brand"><span class="dot">🏃‍♂️➡️🏃</span><span>Baton</span></div>
+    <a class="ghlink" href="https://github.com/shanemhamilton/baton">View on GitHub ↗</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="wrap">
+    <span class="kicker">AI session handoff · MIT · framework-agnostic</span>
+    <h1>Pass the <span class="grad">baton</span>,<br/>cleanly.</h1>
+    <p class="tag">One self-contained document so a fresh session resumes with <b>zero context loss</b> — and knows exactly who it should be.</p>
+
+    <div class="track" aria-hidden="true">
+      <div class="laneline"></div>
+      <span class="runner r1">🏃‍♂️</span>
+      <span class="baton">🥢</span>
+      <span class="runner r2">🏃</span>
+    </div>
+
+    <div class="cta">
+      <a class="btn primary" href="#demo">See a swarm outrun a solo runner ↓</a>
+      <a class="btn" href="https://github.com/shanemhamilton/baton">Star on GitHub</a>
+    </div>
+
+    <div class="install" title="Install for Claude Code">
+      <code id="installcmd">curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/baton/SKILL.md -o ~/.claude/skills/baton/SKILL.md</code>
+      <button id="copybtn" onclick="copyInstall()">Copy</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SWARM DEMO ============ -->
+<section id="demo">
+  <div class="wrap">
+    <div class="eyebrow">The core idea, running</div>
+    <h2>Wall-clock = the slowest agent, not the sum.</h2>
+    <p class="lead">A Baton handoff can tell the next session to <b>fan out</b>. Flip the switch and dispatch five subagents. In <span style="color:var(--solo)">SOLO</span> they run one after another. In <span style="color:var(--swarm)">SWARM</span> they launch together — and finish in the time of the single slowest one.</p>
+
+    <div class="demo">
+      <div class="demo-controls">
+        <div class="toggle" role="tablist" aria-label="dispatch mode">
+          <button data-mode="solo" class="on" onclick="setMode('solo')">SOLO · serial</button>
+          <button data-mode="swarm" onclick="setMode('swarm')">SWARM · parallel</button>
+        </div>
+        <button class="btn primary go" id="dispatchbtn" onclick="dispatch()">▶ Dispatch 5 agents</button>
+      </div>
+
+      <div class="clocks">
+        <div class="clock">
+          <div class="lab">Wall-clock elapsed</div>
+          <div class="val" id="clockWall">0.0s</div>
+        </div>
+        <div class="clock">
+          <div class="lab" id="cmpLab">If run serially</div>
+          <div class="val" id="clockCmp">9.1s</div>
+        </div>
+      </div>
+
+      <div class="lanes" id="lanes"></div>
+
+      <div class="demo-note" id="demoNote">
+        <b>SOLO:</b> total time is the <b>sum</b> of every agent — 9.1s. Now switch to SWARM and dispatch again.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SECTION 0 ============ -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">What makes Baton different</div>
+    <h2>Section 0: the next session's shape.</h2>
+    <p class="lead">Most handoffs say <i>what to do next</i>. Baton opens by declaring <i>who does it</i> — model tier, mode, review depth — before a single line of work begins.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>The rules it encodes</h3>
+        <p style="color:var(--muted);margin:10px 0 0">
+          <b style="color:var(--text)">Model tier</b> — latest <span style="color:var(--go)">Sonnet</span> for a bounded task, latest <span style="color:var(--swarm)">Opus</span> to orchestrate. Written as <span class="mono" style="color:var(--baton)">"latest"</span>, never pinned, so handoffs never age out.<br/><br/>
+          <b style="color:var(--text)">Mode</b> — <span style="color:var(--solo)">SOLO</span> (one agent) vs <span style="color:var(--swarm)">SWARM</span> (orchestrator + subagents).<br/><br/>
+          <b style="color:var(--text)">Parallelism</b> — front-load planning, then dispatch the maximum safe number of subagents at once. Guardrails hold: scoped file lists, safety-critical logic to a guardian, no self-certifying.
+        </p>
+      </div>
+      <div class="doc" aria-label="example Section 0">
+<span class="c">## 0. Receiving Session Config</span>
+<span class="k">- Model / tier:</span> Opus <span class="s">(latest)</span> orchestrator
+<span class="k">- Mode:</span> <span class="s">SWARM</span> — orchestrator + subagents
+<span class="k">- Subagents:</span> 5× Sonnet <span class="s">(latest)</span>
+<span class="k">- Review depth:</span> full adversarial flow
+<span class="k">- Boot:</span> read this doc, then decompose
+<span class="k">- Directive:</span> front-load, then fan out
+  the max safe subagents in one batch —
+  comprehensive <span class="s">and</span> fast.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ANATOMY ============ -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Anatomy of a handoff</div>
+    <h2>Eleven sections. Zero guesswork.</h2>
+    <div class="rows" id="rows"></div>
+  </div>
+</section>
+
+<!-- ============ INSTALL / USE ============ -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Get going</div>
+    <h2>Drop in one file. Say <span class="mono" style="font-size:.7em">/baton</span>.</h2>
+    <p class="lead">Baton is plain Markdown with YAML frontmatter — no runtime, no dependencies. Install globally for Claude Code, or per-project. It also works with Codex and Gemini CLI setups that read a <span class="mono">skills/</span> directory.</p>
+    <div class="cta" style="justify-content:flex-start;margin-top:24px">
+      <a class="btn primary" href="https://github.com/shanemhamilton/baton#install">Install instructions</a>
+      <a class="btn" href="https://github.com/shanemhamilton/baton/blob/main/skills/baton/SKILL.md">Read the skill</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="attr">
+      Baton is a derivative of the <b>handoff</b> skill from
+      <a href="https://github.com/dsifry/metaswarm">metaswarm</a> by <b>Dave Sifry</b> (MIT).
+      The structure, method, and template come from metaswarm; Baton adds Section 0, the SWARM
+      fan-out directive, the “latest, never pinned” rule, and a framework-agnostic generalization.
+      Grateful thanks to Dave and the metaswarm project.
+    </p>
+    <div>
+      <span class="pill">MIT License</span>
+      <span class="pill">© 2026 Shane Hamilton</span>
+      <span class="pill">portions © 2026 Dave Sifry</span>
+    </div>
+    <p style="margin-top:22px;font-size:13px">Made for the moment you run low on context. <span class="heart">🥢</span></p>
+  </div>
+</footer>
+
+<script>
+  // ----- install copy -----
+  function copyInstall(){
+    const t=document.getElementById('installcmd').textContent;
+    navigator.clipboard.writeText(t).then(()=>{
+      const b=document.getElementById('copybtn');
+      const o=b.textContent;b.textContent='Copied ✓';
+      setTimeout(()=>b.textContent=o,1400);
+    });
+  }
+
+  // ----- anatomy rows -----
+  const SECTIONS=[
+    ['0','Receiving Session Config','Model tier · SOLO/SWARM · subagents · review depth · fan-out directive',true],
+    ['1','Objective','What we\'re accomplishing, and why'],
+    ['2','Definition of Done','Verifiable acceptance criteria'],
+    ['3','Current Status','Done/verified · unverified · in-progress · not-started · working tree'],
+    ['4','Required Reading','A table of paths, why each matters, and what to look for'],
+    ['5','Key Decisions','Settled choices + rationale, so they aren\'t reopened'],
+    ['6','Code Map','Where the load-bearing code lives'],
+    ['7','How to Verify','The exact test / lint / build commands'],
+    ['8','Open Questions','What needs the user or an external dependency'],
+    ['9','Next Action','The one concrete next step, expanded'],
+    ['10','Remaining Work','Everything after the next action'],
+  ];
+  document.getElementById('rows').innerHTML=SECTIONS.map(s=>
+    `<div class="row ${s[3]?'zero':''}"><span class="num">${s[0]}</span><span class="nm">${s[1]}</span><span class="ds">${s[2]}</span></div>`
+  ).join('');
+
+  // ----- swarm demo -----
+  const AGENTS=[
+    {name:'read-tests',   work:1.7},
+    {name:'map-modules',  work:2.9},
+    {name:'trace-callers',work:1.1},
+    {name:'audit-safety', work:2.4},
+    {name:'draft-fix',    work:1.0},
+  ];
+  const SUM=AGENTS.reduce((a,b)=>a+b.work,0);   // 9.1
+  const MAX=Math.max(...AGENTS.map(a=>a.work));  // 2.9
+  const SCALE=620;      // ms of animation per "work-second"
+  let mode='solo', running=false, rafId=null;
+
+  function buildLanes(){
+    document.getElementById('lanes').innerHTML=AGENTS.map((a,i)=>
+      `<div class="lane" id="lane${i}">
+        <span class="name">${a.name}</span>
+        <div class="bartrack"><div class="bar ${mode}" id="bar${i}"></div></div>
+        <span class="dur">${a.work.toFixed(1)}s <span class="tick">✓</span></span>
+      </div>`).join('');
+  }
+  function setMode(m){
+    if(running) return;
+    mode=m;
+    document.querySelectorAll('.toggle button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+    const wall=(m==='solo')?SUM:MAX;
+    document.getElementById('clockWall').textContent='0.0s';
+    document.getElementById('clockWall').className='val';
+    document.getElementById('cmpLab').textContent=(m==='solo')?'If run in parallel':'If run serially';
+    document.getElementById('clockCmp').textContent=((m==='solo')?MAX:SUM).toFixed(1)+'s';
+    document.getElementById('clockCmp').className='val lose';
+    document.getElementById('demoNote').innerHTML=(m==='solo')
+      ? '<b>SOLO:</b> total time is the <b>sum</b> of every agent — '+SUM.toFixed(1)+'s. Now switch to SWARM and dispatch again.'
+      : '<b>SWARM:</b> all five launch at once — total time is the <b>slowest single agent</b>, '+MAX.toFixed(1)+'s. Same work, '+(SUM/MAX).toFixed(1)+'× faster.';
+    buildLanes();
+  }
+  function dispatch(){
+    if(running) return; running=true;
+    const btn=document.getElementById('dispatchbtn'); btn.textContent='● running…'; btn.style.opacity=.7;
+    buildLanes();
+    const total=(mode==='solo')?SUM:MAX;
+    // schedule each bar
+    AGENTS.forEach((a,i)=>{
+      const bar=document.getElementById('bar'+i);
+      const delay=(mode==='solo')? AGENTS.slice(0,i).reduce((x,y)=>x+y.work,0) : 0;
+      bar.style.transition='none'; bar.style.width='0%';
+      requestAnimationFrame(()=>{
+        setTimeout(()=>{
+          bar.style.transition='width '+(a.work*SCALE)+'ms linear';
+          bar.style.width='100%';
+        }, delay*SCALE);
+      });
+      setTimeout(()=>document.getElementById('lane'+i).classList.add('done'),(delay+a.work)*SCALE);
+    });
+    // live clock
+    const start=performance.now(), durMs=total*SCALE;
+    const wallEl=document.getElementById('clockWall');
+    function tick(now){
+      const el=Math.min((now-start)/SCALE, total);
+      wallEl.textContent=el.toFixed(1)+'s';
+      if((now-start)<durMs){ rafId=requestAnimationFrame(tick); }
+      else{
+        wallEl.textContent=total.toFixed(1)+'s'; wallEl.className='val win';
+        btn.textContent='▶ Dispatch 5 agents'; btn.style.opacity=1; running=false;
+      }
+    }
+    rafId=requestAnimationFrame(tick);
+  }
+  setMode('solo');
+</script>
+</body>
+</html>
