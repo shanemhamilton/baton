@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Baton — pass the baton, cleanly</title>
-<meta name="description" content="Baton is a portable AI session-handoff skill: one operational entrypoint that removes prior-chat dependency and preplans the next session's orchestrator, specialist/model routing, collision-safe deployment waves, and review." />
+<meta name="description" content="Baton is a portable AI session-handoff skill: it surfaces high-leverage human decisions, selects the lightest adequate execution shape, and launches a long, adversarially checked one-shot continuation." />
 <meta name="theme-color" content="#0e1116" />
 <meta property="og:title" content="Baton — pass the baton, cleanly" />
-<meta property="og:description" content="Portable Codex and Claude handoffs that preplan the next session's orchestrator, specialist models, safe deployment waves, and review." />
+<meta property="og:description" content="Portable Codex and Claude handoffs with a human leverage gate, right-sized execution, adversarial evidence checks, and long one-shot momentum." />
 <meta property="og:type" content="website" />
 <style>
   :root{
@@ -184,7 +184,7 @@
   <div class="wrap">
     <span class="kicker">AI session handoff · MIT · framework-agnostic</span>
     <h1>Pass the <span class="grad">baton</span>,<br/>cleanly.</h1>
-    <p class="tag">One self-contained operational entrypoint so a fresh session resumes <b>without the prior chat</b> — and knows exactly how to operate.</p>
+    <p class="tag">One self-contained, evidence-backed entrypoint so a fresh session resumes <b>without the prior chat</b> — and keeps making safe progress.</p>
 
     <div class="track" aria-hidden="true">
       <div class="laneline"></div>
@@ -194,7 +194,7 @@
     </div>
 
     <div class="cta">
-      <a class="btn primary" href="#demo">See a swarm outrun a solo runner ↓</a>
+      <a class="btn primary" href="#demo">See right-sized execution in action ↓</a>
       <a class="btn" href="https://github.com/shanemhamilton/baton">Star on GitHub</a>
     </div>
 
@@ -209,20 +209,20 @@
   </div>
 </div>
 
-<!-- ============ SWARM DEMO ============ -->
+<!-- ============ RIGHT-SIZING DEMO ============ -->
 <section id="demo">
   <div class="wrap">
     <div class="eyebrow">The core idea, running</div>
-    <h2>Parallel when the lanes really are independent.</h2>
-    <p class="lead">This example has five independent support lanes, so a Baton handoff can safely run them together. Real handoffs choose the smallest useful batch, reserve the main orchestrator, and serialize dependencies or overlapping writes.</p>
+    <h2>Use only as much machinery as the work earns.</h2>
+    <p class="lead">This example has five independent evidence checks that a small native worker set can group safely, so lightweight delegation earns its keep. Tightly coupled work stays direct; Metaswarm is reserved for persistent coordination or governance needs that simpler shapes cannot manage.</p>
 
     <div class="demo">
       <div class="demo-controls">
         <div class="toggle" role="tablist" aria-label="dispatch mode">
-          <button data-mode="solo" class="on" onclick="setMode('solo')">SOLO · serial</button>
-          <button data-mode="swarm" onclick="setMode('swarm')">SWARM · parallel</button>
+          <button data-mode="solo" class="on" onclick="setMode('solo')">DIRECT · focused</button>
+          <button data-mode="swarm" onclick="setMode('swarm')">LEAN · parallel</button>
         </div>
-        <button class="btn primary go" id="dispatchbtn" onclick="dispatch()">▶ Dispatch 5 safe lanes</button>
+        <button class="btn primary go" id="dispatchbtn" onclick="dispatch()">▶ Run 5 evidence checks</button>
       </div>
 
       <div class="clocks">
@@ -239,7 +239,7 @@
       <div class="lanes" id="lanes"></div>
 
       <div class="demo-note" id="demoNote">
-        <b>SOLO:</b> running these five independent lanes serially takes their <b>sum</b> — 9.1s. Switch to SWARM to run the same safe batch together.
+        <b>DIRECT:</b> one context runs the checks serially. Switch to LEAN only because these five evidence checks are independent and collision-free.
       </div>
     </div>
   </div>
@@ -249,28 +249,30 @@
 <section>
   <div class="wrap">
     <div class="eyebrow">What makes Baton different</div>
-    <h2>Section 0: the next session's shape.</h2>
-    <p class="lead">Most handoffs say <i>what to do next</i>. Baton opens by defining <i>how the next session operates</i> — main orchestrator, specialist/model routing, deployment waves, ownership, and review — before a single line of work begins.</p>
+    <h2>Section 0: the next session's contract.</h2>
+    <p class="lead">Most handoffs say <i>what to do next</i>. Baton first surfaces any human-owned choice that would materially improve the next session, then defines the longest safe execution horizon, chooses the lightest adequate mechanism, and installs an adversarial evidence spine.</p>
 
     <div class="grid2">
       <div class="card">
         <h3>The rules it encodes</h3>
         <p style="color:var(--muted);margin:10px 0 0">
-          <b style="color:var(--text)">Main agent</b> — the session orchestrator follows <span class="mono" style="color:var(--baton)">$efficient-frontier</span>, or its embedded fallback contract when unavailable, and retains architecture, risk, integration, synthesis, and final review.<br/><br/>
-          <b style="color:var(--text)">Specialists and models</b> — verify real agent types, then match each lane to Claude Opus/Sonnet, GPT-5.6 Sol/Terra, or available Codex-Spark based on capability, latency, and risk.<br/><br/>
-          <b style="color:var(--text)">Deployment</b> — choose optimal useful concurrency, explicit launch triggers, disjoint ownership, authority gates, single-writer boundaries, and independent review.
+          <b style="color:var(--text)">Human leverage</b> — pause before finalization for the few human-owned choices that materially change the runway; offer a recommendation, an option-preserving defer path, and repeat until clear.<br/><br/>
+          <b style="color:var(--text)">Right-sized execution and detail</b> — choose DIRECT, LEAN, STRUCTURED, or METASWARM, then keep the handoff compact, standard, or governed as the evidence actually requires.<br/><br/>
+          <b style="color:var(--text)">Adversarial truth</b> — classify load-bearing claims, hunt contradictions, use a fresh challenger, and rerun decisive checks.<br/><br/>
+          <b style="color:var(--text)">One-shot momentum</b> — establish a runnable walking skeleton when new structure is needed, then keep expanding and verifying until done or a real hard stop.
         </p>
       </div>
       <div class="doc" aria-label="example Section 0">
-<span class="c">## 0. Receiving Session Orchestration</span>
-<span class="k">- Main directive:</span> orchestrate with <span class="s">$efficient-frontier</span>
-<span class="k">- Main model:</span> verified Opus / Sol frontier model
-<span class="k">- Wave 1:</span> explorer + domain specialist
-<span class="k">- Models:</span> Sonnet / Terra / Spark where each fits
-<span class="k">- Review depth:</span> full adversarial flow
-<span class="k">- Boot:</span> refresh live state, verify catalog
-<span class="k">- Dispatch:</span> copy-ready packets with
-  ownership, triggers, evidence, and fallbacks.
+<span class="c">## 0. Receiving Session Contract</span>
+<span class="k">- Shape:</span> <span class="s">LEAN</span> native delegation
+<span class="k">- Depth:</span> standard, outcome-level
+<span class="k">- Human input:</span> cleared / answered / deferred
+<span class="k">- Why:</span> 3 independent evidence checks
+<span class="k">- Horizon:</span> walking skeleton → vertical slices
+<span class="k">- Review:</span> fresh falsification challenger
+<span class="k">- Boot:</span> refresh repo, tracker, locks, runtime
+<span class="k">- Keep going:</span> verify, repair, take next slice
+<span class="k">- Stop:</span> only DoD, approval, or hard blocker
       </div>
     </div>
   </div>
@@ -280,7 +282,8 @@
 <section>
   <div class="wrap">
     <div class="eyebrow">Anatomy of a handoff</div>
-    <h2>Eleven sections. Zero guesswork.</h2>
+    <h2>Only as much detail as the work earns.</h2>
+    <p class="lead">Narrow, low-uncertainty work merges the essentials into a compact six-section handoff. Substantial and governed work can use the fuller map below without turning every future edit into a script.</p>
     <div class="rows" id="rows"></div>
   </div>
 </section>
@@ -303,8 +306,8 @@
     <p class="attr">
       Baton is a derivative of the <b>handoff</b> skill from
       <a href="https://github.com/dsifry/metaswarm">metaswarm</a> by <b>Dave Sifry</b> (MIT).
-      The structure, method, and template come from metaswarm; Baton adds Section 0's
-      orchestration contract, specialist/model routing, deployment waves, and a framework-agnostic generalization.
+      The self-contained handoff structure and exact launch sentence come from metaswarm; Baton adds
+      a human leverage gate, right-sized execution selection, adversarial evidence checks, long one-shot missions, and walking-skeleton guidance.
       Grateful thanks to Dave and the metaswarm project.
     </p>
     <div>
@@ -343,23 +346,23 @@
 
   // ----- anatomy rows -----
   const SECTIONS=[
-    ['0','Receiving Session Orchestration','$efficient-frontier main agent · specialist/model routing · waves · dispatch packets · review',true],
+    ['0','Receiving Session Contract','human-decision state · right-sized execution · one-shot horizon · boot checks · review tier · hard stops',true],
     ['1','Objective','What we\'re accomplishing, and why'],
     ['2','Definition of Done','Verifiable acceptance criteria'],
     ['3','Current Status','Done/verified · unverified · in-progress · not-started · working tree'],
-    ['4','Required Reading','A table of paths, why each matters, and what to look for'],
-    ['5','Key Decisions','Settled choices + rationale, so they aren\'t reopened'],
-    ['6','Code Map','Where the load-bearing code lives'],
-    ['7','How to Verify','The exact test / lint / build commands'],
-    ['8','Open Questions','What needs the user or an external dependency'],
-    ['9','Next Action','The one concrete next step, expanded'],
-    ['10','Remaining Work','Everything after the next action'],
+    ['4','Truth Ledger & Required Reading','Evidence classes, volatile refreshes, paths, and what to inspect'],
+    ['5','Key Decisions','Settled or deferred choices, rationale, and revisit triggers'],
+    ['6','Architecture / Walking Skeleton','Existing boundaries, first structural proof, and value-ordered expansion'],
+    ['7','Verification Loop','Exact checks and what each proves or cannot prove'],
+    ['8','Questions, Risks & Hard Stops','What truly needs the user, external state, or a safety gate'],
+    ['9','Continuation Mission','Full safe one-shot target, concrete start, and keep-going rule'],
+    ['10','Later Horizons','Outcome-level work intentionally outside this session'],
   ];
   document.getElementById('rows').innerHTML=SECTIONS.map(s=>
     `<div class="row ${s[3]?'zero':''}"><span class="num">${s[0]}</span><span class="nm">${s[1]}</span><span class="ds">${s[2]}</span></div>`
   ).join('');
 
-  // ----- swarm demo -----
+  // ----- right-sizing demo -----
   const AGENTS=[
     {name:'read-tests',   work:1.7},
     {name:'map-modules',  work:2.9},
@@ -391,8 +394,8 @@
     document.getElementById('clockCmp').textContent=((m==='solo')?MAX:SUM).toFixed(1)+'s';
     document.getElementById('clockCmp').className='val lose';
     document.getElementById('demoNote').innerHTML=(m==='solo')
-      ? '<b>SOLO:</b> running these five independent lanes serially takes their <b>sum</b> — '+SUM.toFixed(1)+'s. Switch to SWARM to run the same safe batch together.'
-      : '<b>SWARM:</b> all five independent lanes launch at once — total time is the <b>slowest single lane</b>, '+MAX.toFixed(1)+'s. Same work, '+(SUM/MAX).toFixed(1)+'× faster.';
+      ? '<b>DIRECT:</b> one context runs these independent checks serially in '+SUM.toFixed(1)+'s. Switch to LEAN only because the checks are bounded and collision-free.'
+      : '<b>LEAN:</b> a small native worker set runs five bounded checks together — total time is the <b>slowest check</b>, '+MAX.toFixed(1)+'s. No persistent orchestration framework needed.';
     buildLanes();
   }
   function dispatch(){
@@ -422,7 +425,7 @@
       if((now-start)<durMs){ rafId=requestAnimationFrame(tick); }
       else{
         wallEl.textContent=total.toFixed(1)+'s'; wallEl.className='val win';
-        btn.textContent='▶ Dispatch 5 safe lanes'; btn.style.opacity=1; running=false;
+        btn.textContent='▶ Run 5 evidence checks'; btn.style.opacity=1; running=false;
       }
     }
     rafId=requestAnimationFrame(tick);

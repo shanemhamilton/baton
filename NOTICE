@@ -18,15 +18,24 @@ The document structure, method steps, template, and anti-patterns originate
 from metaswarm's handoff skill and are used under the terms of the MIT License.
 
 Baton's additions over the original:
-  - Section 0 "Receiving Session Orchestration" — appoints the main agent as
-    the session orchestrator following $efficient-frontier and declares review
-    depth and boot sequence before any work begins.
-  - Provider-neutral specialist and model routing for likely subagent lanes,
-    including capability-aware reasoning effort, Claude and Codex model
-    families, and same-runtime availability fallbacks.
-  - Collision-aware deployment waves with launch triggers, disjoint ownership,
-    single-writer boundaries, copy-ready packets, and independent review.
-  - Optimal useful concurrency rather than blanket maximum fan-out.
+  - A pre-finalization Human Leverage Gate that pauses for one to three
+    material human-owned choices, provides a recommendation, and records an
+    option-preserving defer path; it repeats until clear without outsourcing
+    discoverable or safely testable engineering judgment.
+  - Section 0 "Receiving Session Contract" — records a long one-shot horizon,
+    live-state boot checks, authority boundaries, hard stops, and the lightest
+    adequate execution mechanism before work resumes.
+  - A right-sizing ladder spanning direct execution, lightweight native
+    delegation, structured orchestration, and Metaswarm only when persistent
+    coordination or governance needs justify its overhead.
+  - Compact, standard, and governed handoff depths so evidence remains
+    proportional and narrow work does not inherit orchestration theater.
+  - An evidence-led adversarial spine: classified claims, contradiction-seeking,
+    fresh independent challenge, central spot-checks, and risk-scaled review.
+  - Architecture and runnable walking-skeleton guidance before detailed feature
+    expansion when substantial product work needs new structure.
+  - Longest-safe-one-shot continuation rules rather than stopping automatically
+    after one small milestone or maximizing fan-out.
   - Generalization to be framework-agnostic (no hard dependency on any
     orchestration framework, issue tracker, or plugin).
 

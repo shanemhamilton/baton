@@ -1,312 +1,382 @@
 ---
 name: baton
-description: Pass the baton — write one self-contained operational entrypoint so a fresh session resumes without relying on the prior chat, and end with one "Read XXX.md and do YYY." sentence. The handoff normally appoints the main agent as the session orchestrator following `$efficient-frontier`, preplans the highest-value subagent waves, selects verified or startup-resolved specialized agent types and fit-for-purpose Claude, Codex, or other available models, defines authority/ownership/review gates, and leaves copy-ready dispatch packets. Use when a session is ending, context is about to compact, switching sessions or machines, running low on context, wrapping up, or the user asks to hand off, resume later, or continue in a new session. Project-agnostic.
+description: Pass the baton by writing one self-contained, evidence-backed operational entrypoint for a fresh session, then end with one exact "Read XXX.md and do YYY." sentence. Pause before finalizing when a small number of human-owned decisions would materially improve the next session, so the human can answer or explicitly defer. Select the lightest adequate execution mechanism—direct work, small native delegation, a structured orchestrator, or Metaswarm only when justified—and embed a right-sized adversarial review spine. Optimize for the longest safe one-shot run and maximum verified progress; for substantial product or feature work, establish a working architectural skeleton before filling in detailed parts. Use when ending or compacting a session, switching machines or sessions, wrapping up, or when the user asks to hand off, resume later, or continue in a new session. Project-agnostic.
 ---
 
 # Baton — Handoff Skill
 
-Pass the baton cleanly: capture the operational state and every load-bearing decision a **fresh agent with zero prior context** needs, write one self-contained entrypoint to the work, and hand it off with a single unambiguous sentence:
+Pass the baton cleanly. Capture the operational truth and load-bearing decisions a **fresh agent with zero prior chat context** needs, then give it a continuation mission designed to make the maximum safe, verified progress in one uninterrupted session.
 
-> **Read `docs/handoffs/<file>.md` and do `<the next concrete action>`.**
+End with one unambiguous sentence:
 
-Use this when a session is ending, when context is about to be compacted, when switching machines or sessions, or when the user explicitly asks for a handoff. The receiving agent should act correctly from this single entrypoint without the prior conversation, while still reading any source artifacts it explicitly lists as prerequisites.
+> **Read `docs/handoffs/<file>.md` and do the continuation mission through its stop conditions, starting by `<the first concrete move as a gerund phrase>`.**
 
-This skill is project-agnostic. It strongly prefers the `efficient-frontier` skill for the receiving orchestrator. If that named skill is unavailable, embed its core orchestration contract in Section 0 so the session follows the same behavior without stalling. References to beads, metaswarm, Codex roles, Claude models, or coverage files are examples; use only what the actual project and receiving runtime expose.
+Treat the handoff as an evidence-backed launchpad, not a frozen transcript or an exhaustive prediction of every future edit.
 
----
+## Core Rules
+
+1. **Re-ground in live truth.** Verify repository, tracker, runtime, lock, and external state before recording it. Mark facts, inferences, volatile claims, and unknowns distinctly.
+2. **Choose the lightest adequate execution shape.** The agent writing the handoff selects the receiving framework. Do not default to Metaswarm, any other orchestration skill, or maximum fan-out merely because it is installed.
+3. **Keep an adversarial spine.** Use evidence checks, contradiction-seeking, and fresh independent challenge in proportion to risk. Never treat an agent's confidence as proof.
+4. **Surface high-leverage human decisions before finalizing.** If a small number of human-owned choices would materially change the outcome, design, risk posture, or useful execution horizon, pause with concise options, a recommendation, and an explicit defer path. Do not ask the human to decide facts or reversible engineering details the agent can resolve.
+5. **Optimize for a long one-shot run.** Give the receiving session a full safe execution horizon, milestone sequence, verification loop, and explicit stop conditions. Do not tell it to finish one small step and stop unless that step completes the task.
+6. **Build structure before detail when the work warrants it.** For greenfield or substantial cross-cutting product work, establish a minimal working architectural or end-to-end skeleton, prove that the pieces connect, and then expand the highest-value parts. Do not create empty boilerplate for a narrow fix or mature code path.
+7. **Preserve authority.** A handoff or delegation never expands user scope, permissions, budget, or approval. Keep destructive, irreversible, production, privacy-, security-, and cost-sensitive actions behind their existing gates.
 
 ## Output Contract
 
-This skill produces exactly two things:
+After the Human Leverage Gate is cleared, produce exactly two deliverables:
 
-1. **A handoff document** at `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md` (created if the directory does not exist). A comprehensive operational entrypoint that embeds load-bearing decisions and links to or quotes every prerequisite artifact.
-2. **A single closing sentence**, and nothing else after the document is written, of the exact form:
+1. **One handoff document** at `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md`. Create the directory when needed. Make the document compact enough to orient quickly and complete enough to operate without the prior chat.
+2. **One closing sentence**, with nothing after it, using the literal path and an executable mission:
 
    ```text
-   Read docs/handoffs/handoff-2026-06-17-1432.md and do <YYY>.
+   Read docs/handoffs/handoff-2026-06-17-1432.md and do the continuation mission through its stop conditions, starting by establishing the tested CLI walking skeleton described there.
    ```
 
-   Where `<YYY>` is one concrete, actionable next step (an imperative, not a vague theme). Good: "implement the `parseConfig` validation in `src/config.ts:84` and make `tests/config.test.ts` pass". Bad: "continue the work" / "look into the config stuff".
+Use a shorter `Read ... and do ...` form only when the entire remaining task is genuinely narrow. Never end with “continue the work,” “follow the plan,” or another vague theme.
 
-The sentence is the deliverable the user hands to the next agent. The document is what makes that sentence safe to follow.
-
----
+An interim human-decision pause is **not a completed handoff** and is the only exception to the two-deliverable contract. Ask the decision questions and stop. Do not write or present the final handoff document or closing sentence until the human answers or explicitly defers each qualifying human-owned choice.
 
 ## Method
 
-### Step 1 — Reconstruct what we are working on
+### Step 1 — Reconstruct the mission
 
-Review the session to date and answer, concretely:
+State:
 
-- **Objective**: What is the user actually trying to accomplish? One or two sentences.
-- **Definition of Done**: What does "finished" look like? Enumerate verifiable acceptance criteria if any exist.
-- **Why**: The motivation behind the task, so the next agent does not re-litigate settled decisions.
+- **Objective and why** — what outcome the user wants and why settled decisions matter.
+- **Definition of Done** — observable acceptance criteria, including external proof that local tests cannot establish.
+- **Current execution horizon** — the largest coherent, safe body of work the next session can pursue without needing a new product decision or approval.
+- **Hard stop conditions** — the exact events that require the user, an external-state change, a safety gate, or a new handoff.
 
-Pull from: the user's original request, any tracked issue (`gh issue view <n>` if GitHub), design/plan docs, and the arc of the conversation.
+Use the user's request, issue or tracker, approved design and plan artifacts, project instructions, and verified session work. Preserve uncertainty instead of filling gaps with plausible detail.
 
-### Step 2 — Load any persisted project state (optional)
+### Step 2 — Establish live state and an evidence ledger
 
-If the project persists state — a plan doc, task tracker, orchestration context, locks, or active-agent state — read and fold in whatever exists. Do **not** duplicate it blindly; summarize and link. Common examples (run only those that apply):
-
-```bash
-rg --files docs/plans .beads/plans         # discover plan files if these directories exist
-bd prime                                   # beads state reload only when beads is installed and used
-```
-
-Do not suppress errors from state-refresh commands. Record an unavailable tool or failed refresh as unresolved evidence. If an active plan exists, point to it explicitly and state which unit/phase is in progress.
-
-### Step 3 — Establish current status
-
-Be honest and specific. Distinguish clearly between:
-
-- **Done & verified** — with evidence (tests passing, build green, commit SHAs).
-- **Done but unverified** — written but not yet tested/run.
-- **In progress** — the exact thing being worked on now, and where it stopped.
-- **Not started** — remaining work.
-
-Capture the working-tree reality so the next agent is not surprised:
+Load project-native state only when it exists. Prefer built-in platform and project mechanisms before adding a framework. Examples:
 
 ```bash
-git branch --show-current
+rg --files docs .beads                         # discover, do not assume, persisted state
+bd prime                                      # only when this project actually uses Beads
+git status --short --branch
 git rev-parse --show-toplevel
 git rev-parse HEAD
-git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'
-git rev-list --left-right --count 'HEAD...@{upstream}'
-git status --short
-git stash list
 git log --oneline -10
 git diff --stat
+git stash list
 ```
 
-Record the absolute repo/worktree, branch and upstream, HEAD and relevant base, ahead/behind counts, uncommitted diff scope, stashes, pushed state, recovery/rollback state, and any active locks or parallel actors. Distinguish live evidence from remembered or persisted claims.
+Also check the applicable upstream divergence, worktree, locks, active actors, deploy/store/runtime state, and recovery material when they affect the task. Do not suppress failed refreshes; record them as missing evidence.
 
-### Step 4 — Identify required reading
+For every load-bearing claim, record one of:
 
-List every artifact the next agent must read **before acting**, and for each say *why* and *what to look for*. Categories to sweep:
+- **Observed** — directly re-read or executed now; cite the path, command, output, or external source.
+- **Derived** — a conclusion from named observed facts; state the reasoning briefly.
+- **Volatile** — observed now but likely to drift; require a boot-time refresh.
+- **Unknown** — not verified; never convert it into a fact for narrative completeness.
 
-- **Specs / Issues** — the requirements source of truth.
-- **Design docs** — any approved design.
-- **Plans** — the active plan, if mid-execution.
-- **Code** — the specific files and `file:line` anchors at the focus of the work, plus any pattern files to imitate.
-- **Tests** — the tests that define correctness (failing tests are the spec under TDD).
-- **Config / gates** — coverage thresholds, project instruction files (CLAUDE.md / AGENTS.md), CI config the change must satisfy.
+### Step 3 — Run the Human Leverage Gate
 
-Prefer precise pointers (`src/foo.ts:120-145`) over whole-file references. If something is short and load-bearing, quote it directly into the handoff so the next agent does not have to hunt.
+Before selecting the execution shape or finalizing the handoff, identify unresolved choices that are genuinely owned by the human and would make the next session materially more productive if settled now. A choice qualifies only when all of these are true:
 
-### Step 5 — Decide the single next action (`YYY`)
+- Its answer is not discoverable or resolvable from current source, instructions, tracker state, prior decisions, or a safe in-scope investigation, existing test, or sandboxed probe.
+- Plausible answers would materially change the outcome, priority, acceptance criteria, user experience, architecture or data ownership, risk tolerance, authorized budget or external action, or the useful one-shot execution horizon.
+- It belongs to the human rather than ordinary reversible engineering judgment.
+- Resolving it now avoids meaningful rework or unlocks more useful work than waiting until the decision is naturally encountered.
 
-Pick the one most important, concrete next step. It must be:
+When one or more choices qualify:
 
-- **Actionable** — an imperative the agent can start immediately.
-- **Specific** — names files, functions, or DoD items.
-- **Bounded** — the immediate next move, not the entire roadmap (the rest goes in "Remaining Work").
+1. Complete all safe read-only preparation that can sharpen the decision.
+2. Ask only the one to three highest-leverage questions. For each, state why it matters, the practical effect of the viable options, the recommended default, and exactly what **defer** would mean.
+3. Stop before writing or presenting the final handoff document or closing sentence. Let the human answer, revise the options, or explicitly defer.
+4. Classify the response explicitly. An **answer** settles the choice for the stated one-shot horizon. “Use your recommendation” counts as an answer only when the recommended option and its horizon are explicit. A **defer** intentionally leaves the choice open and must name a safe boundary plus revisit trigger. Partial or ambiguous responses require a concise follow-up; silence is never a defer.
+5. If answered, record the result as an **Observed human decision** and resume from the now-settled execution horizon.
+6. If deferred, record who deferred it and the concrete revisit trigger. A recommendation is not authorization: use a recommended default only when existing authority permits it **and** it is option-preserving, low-cost to reverse, and does not prejudice the eventual outcome, architecture, or data ownership. Otherwise narrow the continuation mission to the safe work that ends before the decision boundary.
+7. Re-run this gate after each response, whenever later framework, architecture, evidence, or adversarial analysis reveals a new qualifying choice, and immediately before finalizing the handoff. The gate is clear only when every qualifying choice is answered or explicitly deferred.
 
-### Step 5b — Design the receiving session and dispatch plan
+Use this compact interim form so the human can choose, give free-form feedback, or defer:
 
-Make the next session's operating model executable before handoff:
+```text
+Human decision needed before I finalize the handoff
 
-1. **Appoint the main agent.** In almost all handoffs, state: **"You are the main session orchestrator. Invoke and follow `$efficient-frontier` before acting."** Use the receiving platform's verified invocation syntax (`$efficient-frontier`, `/efficient-frontier`, or an explicit skill path). If the skill is not verified as installed, say so and include the fallback contract from the template. The main agent retains architecture, prioritization, ambiguity resolution, risk decisions, synthesis, integration, and final review. Use `SOLO` only when the next action is trivial, tightly coupled, or the immediate blocker cannot usefully be delegated; record the reason.
-2. **Discover the real runtime and agent catalog.** Name the expected receiving platform/provider and whether it is inspectable now. Inspect applicable instruction files, project/global agent configuration, installed skills, callable agent roles/native identifiers, model overrides, effort controls, concurrency, and nesting limits. Prefer a verified domain specialist, then the platform's read-heavy explorer or execution worker, then its general-purpose fallback. Never invent a name or assume a Codex launch field exists in Claude Code (or vice versa). If the future runtime cannot be inspected, record capability requirements plus `resolve at startup`, not fictional verification.
-3. **Separate judgment from delegated work.** Keep frontier-only decisions with the main agent. Identify independent research, repository mapping, test/log reduction, bounded coding, mechanical edits, browser/device passes, and specialist review that can leave the main context clean.
-4. **Plan waves, not blanket fan-out.** Determine the smallest high-value batch that saturates useful independent work within the runtime's known or startup-resolved concurrency cap. Reserve the main-agent slot, map dependency and collision surfaces first, and serialize shared-file, single-writer, immediate-blocker, destructive, or externally gated work. Parallelize read-heavy lanes freely; parallelize writes only with disjoint ownership. Do not permit nested fan-out unless the handoff explicitly budgets and scopes it.
-5. **Select a model per lane.** Be provider-neutral. Resolve current availability at handoff time and record an exact preferred model, reasoning/effort setting where supported, and same-runtime fallback. Treat these model families as routing guidance, not guaranteed availability:
+1. <decision>
+   Why now: <how it changes the next session's useful work>
+   Options: <viable choices and practical effects>
+   Recommendation: <default and why>
+   If deferred: <safe default or boundary, plus revisit trigger>
 
-   | Lane shape | Preferred current class | Reasoning | Use when |
-   |---|---|---|---|
-   | Main orchestration, architecture, ambiguous implementation, safety/security review, final synthesis | strongest available frontier model (for example OpenAI `gpt-5.6-sol` or the latest verified Claude Opus) | high–xhigh or provider equivalent | Judgment quality matters more than latency |
-   | Bounded implementation, exploration, large-file review, test/log reduction, documentation | fast balanced agentic model (for example OpenAI `gpt-5.6-terra` or the latest verified Claude Sonnet) | low–high or provider equivalent, matched to complexity | Scope and acceptance criteria are clear |
-   | Tight edit/check loops or small mechanical coding steps | fastest suitable coding model the runtime exposes; in Codex, consider Codex-Spark (for example `gpt-5.3-codex-spark`) when available; in Claude, prefer the verified Sonnet option when its capability/latency fits | low–medium or provider equivalent | Fast iteration matters more than broader capability; never use a latency-first model as the sole high-risk reviewer |
-   | Custom specialist with a configured model | inherit the specialist configuration unless the task requires a stronger verified override | configured | The specialist's domain instructions are the main source of value |
+Reply with a choice, feedback, or "defer." I will stop here and finalize the handoff after your response.
+```
 
-   Do not write an unsupported model slug or silently substitute a model from another provider. If availability cannot be verified, specify the capability class plus `inherit`, and tell the orchestrator to resolve the best available same-runtime match at startup.
-6. **Prewrite the deployment.** For every likely subagent, record its wave, launch trigger, native agent role/identifier (or capability requirement to resolve), preferred model/settings, objective, file/area ownership, dependencies, verification, expected compact return, and fallback. Include a copy-ready self-contained prompt with repo path, scope, out-of-scope areas, required evidence, and stop conditions.
-7. **Preplan independent review.** The implementer never self-certifies. Name a separate reviewer or specialist, select a model strong enough for the risk, and state the evidence the main orchestrator must personally spot-check before completion.
-8. **Preserve authority and safety.** Delegation never expands user scope, permissions, or approval. Keep destructive, irreversible, production, privacy-, security-, and cost-sensitive actions with the main agent; complete safe preparation and fresh independent verification, then obtain required user approval. Never put secrets in packets. Record hard thread/nesting/cost limits and inherited sandbox/tool constraints.
+Do not pause for discoverable facts, ordinary implementation details, technical uncertainty resolvable through an existing test or safe in-scope probe, reversible choices with project-conforming defaults, routine test failures, or approvals that are needed later but do not affect useful preparation now. Selecting the receiving execution framework is the handoff author's responsibility unless the choice exposes a real human-owned budget, timing, policy, or governance tradeoff.
 
-Use `SWARM` by default when at least one independent lane materially improves speed or quality enough to justify its coordination cost. The point is **optimal useful concurrency**, not the largest possible agent count. A small task may use one bounded worker plus one fresh reviewer; a cross-cutting feature may use several first-wave scouts, collision-safe implementation lanes, and a final specialist/QC wave.
+If no choice qualifies, record `Human decision state: none needed` and continue.
 
-### Step 6 — Write the document
+### Step 4 — Select the receiving execution shape
 
-Create `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md` using the template below. Fill every numbered section. In a justified `SOLO` handoff, write "None — SOLO because ..." for the deployment table/packets instead of expanding empty orchestration boilerplate.
+The handoff author must choose and justify the **lightest shape that can reliably complete the execution horizon**. The receiving agent validates availability and live assumptions at boot; it changes shape only when live evidence invalidates the choice, and records why.
 
-### Step 7 — Emit the handoff sentence
+| Shape | Select when | Minimum safety mechanism |
+|---|---|---|
+| **DIRECT** | Work is narrow, tightly coupled, or fastest in one main context. | Deterministic checks plus a separate contradiction pass; use a fresh read-only challenger when the task is nontrivial and one is available. |
+| **LEAN** | One main agent plus roughly 1–3 independent native workers/reviewers materially improves speed or quality without persistent orchestration state. This is the normal choice for many nontrivial tasks. | Disjoint ownership, compact evidence returns, and one fresh independent review. |
+| **STRUCTURED** | Several dependent phases, cross-cutting architecture, or multiple review waves benefit from an existing plan/orchestration skill, but full swarm machinery is unnecessary. | Explicit dependencies, single-writer boundaries, milestone gates, and fresh review at integration points. |
+| **METASWARM** | Sustained parallel workstreams, multiple writers, formal governance gates, locks/ownership, or durable cross-session coordination make its setup and state machinery materially safer or faster than the lighter shapes. | Follow its verified project setup and native gates; retain central evidence checks and user authority. |
 
-After writing the file, verify it (Step 8), then output the single sentence — exactly one line, the literal file path, and the concrete action. Do not add commentary after it.
+Choose execution shape and review tier independently. A narrow security repair may be `DIRECT` with high-risk review; a broad low-risk scaffold may be `STRUCTURED` with medium-risk review. Complexity determines coordination weight. Consequence and uncertainty determine adversarial depth.
 
-### Step 8 — Self-check before handing off
+Before selecting `METASWARM`, answer explicitly:
 
-Confirm, as if you were the receiving agent who knows nothing:
+- What concrete coordination failure would `DIRECT`, `LEAN`, or `STRUCTURED` leave unmanaged?
+- Which verified Metaswarm capability addresses that failure?
+- Is Metaswarm already usable here, or is setup cost part of the justified horizon?
+- Do the parallelism, duration, governance, and collision risks repay that overhead?
 
-- [ ] Does Section 0 explicitly appoint the main agent as orchestrator following `$efficient-frontier`, or justify the rare `SOLO` exception?
-- [ ] Is `$efficient-frontier` verified available, or is its provider-neutral fallback contract embedded?
-- [ ] Is the receiving runtime named, and is each agent/model choice either evidence-backed or explicitly marked `resolve at startup` with a capability requirement?
-- [ ] Does the deployment table choose specialized agents and model/effort by lane rather than one generic subagent profile?
-- [ ] Are concurrency, dependencies, collision surfaces, single-writer files, and launch triggers explicit?
-- [ ] Is each planned subagent prompt self-contained and copy-ready, with ownership, verification, expected evidence, and stop conditions?
-- [ ] Is fresh review independent from implementation, with the main orchestrator retaining final judgment?
-- [ ] Do packets preserve user authority, sandbox/tool limits, secrets, hard caps, and approval gates without nested unplanned fan-out?
-- [ ] Could I start work from this document alone, without the prior conversation?
-- [ ] Are all referenced files/paths/issues real and correct (spot-check with `ls`/`git`)?
-- [ ] Is the next action unambiguous and immediately startable?
-- [ ] Are decisions and their rationale captured so I won't undo them?
-- [ ] Are the quality gates (tests, coverage, lint, build commands) stated?
-- [ ] Does the closing sentence name the exact file and a concrete action?
+If those answers are weak, choose a lighter shape. Never run `/setup` just to make a handoff look complete.
 
----
+Record the chosen framework or native mechanism, verified invocation if known, agent/runtime constraints that matter, and a graceful fallback. Do not inventory or pin every possible model. Name a specialist, tool, or model only when verified and consequential; otherwise state the required capability and let the receiving runtime resolve it.
 
-## Handoff Document Template
+### Step 5 — Design the longest safe one-shot run
+
+Plan an **outcome ladder**, not a line-by-line script:
+
+1. **Boot and re-ground** — refresh volatile state, instructions, permissions, dependencies, and the selected framework's availability.
+2. **Establish or confirm structure** — understand the existing architecture. For greenfield or substantial feature work, create a minimal **walking skeleton**: real boundaries, interfaces/data flow, and the thinnest buildable or runnable end-to-end path.
+3. **Expand by value and dependency** — implement the next highest-value slices on that proven structure, keeping changes small enough to verify.
+4. **Verify and repair continuously** — run the relevant tests, builds, static checks, and evidence reads after each milestone; fix ordinary failures and continue.
+5. **Challenge and integrate** — perform the planned independent review, resolve findings, rerun decisive checks, and continue while the mission remains safe and unblocked.
+6. **Close or hand off honestly** — finish the Definition of Done, or create the next Baton only when a hard stop or genuine context boundary is reached.
+
+Tell the receiving agent to proceed through ordinary ambiguity using reversible, evidence-backed assumptions and to record them. Do not make routine test failures, a completed subtask, or the end of a prewritten checklist an automatic stopping point.
+
+Maximize coherent verified progress, not unchecked batch size. Preserve enough context and time to integrate results, rerun decisive checks, and write another evidence-backed Baton if a genuine session boundary arrives before Definition of Done.
+
+For a bug fix, release operation, migration, or mature feature, work with the existing architecture and choose the appropriate first milestone. “Skeleton first” is a design heuristic for work that needs structure, not permission to add speculative layers or placeholder code.
+
+### Step 6 — Build the adversarial evidence spine
+
+Apply all four passes before handing off:
+
+1. **Claim audit** — attach evidence to each load-bearing status, path, command, branch, dependency, and acceptance claim.
+2. **Falsification pass** — actively search for the strongest contradiction: stale state, wrong worktree, hidden dirty changes, missing files, invalid line anchors, unverified external status, false completion, unsafe rollback, or a plan that cannot fit the architecture.
+3. **Fresh challenge** — for every nontrivial handoff, use at least one fresh read-only challenger when the runtime supports it. Give the challenger the handoff and raw source artifacts, not the intended verdict. Ask it to find factual errors, missing constraints, unsafe assumptions, and a simpler execution shape. If no independent context is available, perform a clearly separated zero-assumption reread and disclose that limitation.
+4. **Correction and replay** — correct supported findings, rerun decisive checks, and re-read the final artifact. Record unresolved disagreement as uncertainty or a blocker.
+
+Scale the review without reaching automatically for an orchestration framework:
+
+- **Low risk:** exact path/command checks, falsification pass, and one lightweight fresh challenge when available.
+- **Medium risk:** independent truth/plan review before handoff and an independent implementation review at the relevant receiving-session milestone.
+- **High risk:** separate truth and domain/safety reviewers; independently verify target, impact, and recovery immediately before destructive or consequential action; obtain required user approval.
+
+Treat reviewer output as evidence, not a verdict. The main agent spot-checks decisive claims and remains responsible for synthesis. A native subagent or separate review pass is sufficient for most review work; Metaswarm is not required to be adversarial.
+
+When the receiving session changes behavior or architecture, require a fresh reviewer distinct from the implementer whenever the runtime can provide one, regardless of execution shape. If that independence is unavailable, disclose the limitation and strengthen deterministic checks and central rereads.
+
+### Step 7 — Write the handoff document
+
+Choose document depth separately from execution shape:
+
+- **COMPACT:** Use for narrow, low-uncertainty work. Aim for roughly 30–80 lines and use the compact template. Keep only load-bearing claims and checks.
+- **STANDARD:** Use for a substantial feature, investigation, or multi-milestone session. Use the standard template, usually at outcome level rather than edit level.
+- **GOVERNED:** Expand the standard template only for high-risk, regulated, destructive, multi-repository, or genuinely Metaswarm-scale work whose evidence and recovery needs require it.
+
+A high-risk `DIRECT` repair may need `GOVERNED` evidence; a broad but reversible `STRUCTURED` scaffold may need only `STANDARD` detail. Do not repeat the same fact across sections. Link to durable native state instead of copying it. Do not precompute hypothetical hashes, outputs, commits, or artifacts and present them as future proof; specify the command and acceptance condition the receiving session must actually observe.
+
+Keep delegation/framework detail proportional: a `DIRECT` handoff needs no deployment theater; a `LEAN` handoff may need a short ownership table; a `METASWARM` handoff should reference its verified native plan/state rather than duplicating it.
+
+### Step 8 — Verify and emit the closing sentence
+
+Run the self-check, re-read the written file, then emit exactly one closing sentence. Make the first move concrete, but make the mission horizon clear:
+
+```text
+Read docs/handoffs/<file>.md and do the continuation mission through its stop conditions, starting by <first concrete move as a gerund phrase>.
+```
+
+## Compact Handoff Template
+
+Use this instead of the standard template for `COMPACT` depth. Omit empty optional bullets rather than expanding “None” into prose.
 
 ````markdown
-# Handoff: <short title of the work>
+# Handoff: <short outcome-oriented title>
 
-**Date**: <YYYY-MM-DD HH:mm> · **Branch**: `<branch>` · **Author session**: <model/agent>
+**Date:** <YYYY-MM-DD HH:mm> · **Repo/branch:** `<absolute path>` / `<branch>`
 
-## 0. Receiving Session Orchestration
-> **Main-agent directive:** You are the session orchestrator. Invoke and follow `$efficient-frontier` using the verified invocation below. If it is unavailable, follow the embedded fallback contract. Keep architecture, prioritization, risk decisions, synthesis, integration, and final review in the main session; delegate only the bounded lanes below.
-- **Receiving runtime/provider:** <Codex app/CLI, Claude Code, other; version/surface if known; verified now or expected>
-- **Efficient Frontier availability:** <verified invocation/path  |  unavailable or unknown — use embedded contract and resolve at startup>
-- **Main-agent provider/model/settings:** <verified strongest available frontier choice; e.g. OpenAI `gpt-5.6-sol`, high, or latest verified Claude Opus with supported settings; otherwise capability class + `resolve at startup`>
-- **Mode:** <SWARM by default  |  SOLO with one-line justification>
-- **Runtime budget:** <hard thread cap; usable subagent slots after reserving main; nesting cap; cost/time cap; or unresolved startup check>
-- **Review depth:** <light: [single gate]  |  full adversarial flow → review-gate marker (e.g. `.adversarial-review-passed`)>
-- **Boot sequence:** <reload live tracker/repo/runtime state; verify agent/model availability; then dispatch Wave 1>
-- **Why this shape:** <why these lanes, models, dependencies, and review depth fit this task>
-- **Authority boundaries:** Delegation does not expand scope or approval. No secrets in packets. Keep destructive, production, privacy-, security-, and cost-sensitive actions with the main agent behind fresh independent verification and required user approval. <Add task-specific boundaries.>
+## 0. Launch Contract
+- **Execution:** <shape and native mechanism>; <one-sentence right-sizing reason>
+- **Human decision state:** <none needed | one entry per choice: answered—decision, horizon, and source; deferred—decision, option-preserving default or safe boundary, and revisit trigger>
+- **One-shot horizon:** <full remaining safe outcome>
+- **Review:** <risk tier and falsification check; for nontrivial work, fresh challenge or disclosed fallback>
+- **Boot refresh:** <only volatile facts that matter>
+- **Hard stops / authority:** <real gates; no generic boilerplate beyond inherited limits>
 
-### Efficient Frontier fallback contract
-<Include when the named skill is unavailable or unverified; otherwise write the verified path/invocation and "not needed".>
-- Keep architecture, prioritization, ambiguity, risk, synthesis, integration, and final review with the strongest main model.
-- Delegate bounded, repeatable, token-heavy work to the cheapest/fastest capable agents with disjoint ownership and compact evidence returns.
-- Treat subagent output as evidence, not a verdict; inspect high-risk diffs and rerun or spot-check decisive verification centrally.
-- Stop delegation on live-state contradiction, repeated verification failure, scope expansion, or missing evidence.
+## 1. Outcome and Done
+<Objective and why in 1–3 sentences.>
+- [ ] <observable acceptance criterion>
+- [ ] <decisive verification criterion>
 
-### Runtime/catalog evidence
-| Item | Value or required capability | Source / command | Checked |
-|---|---|---|---|
-| Runtime and version | <value> | <evidence> | <timestamp or `resolve at startup`> |
-| Agent roles / native identifiers | <exact values or requirements> | <evidence> | <timestamp or `resolve at startup`> |
-| Models and provider settings | <exact values or capability classes> | <evidence> | <timestamp or `resolve at startup`> |
-| Thread/nesting limits | <hard limits> | <evidence> | <timestamp or `resolve at startup`> |
+## 2. Live Truth
+- **Status:** <done, in progress, and remaining in compact form>
+- **Working state:** <HEAD/upstream/dirty/locks/external state only where relevant>
+- **Evidence:** <2–5 load-bearing claim → current source pairs; mark volatile or unknown>
+- **Read first:** <small set of real paths/issues with why>
 
-### Frontier-only decisions
-- <decision the main orchestrator must retain>
+## 3. Decisions and Structure
+- <settled human or technical decision and rationale; mark answered human choices as observed and deferred choices with their revisit trigger>
+- **Architecture/skeleton:** <first real structural milestone, or “Not applicable — existing path is sufficient.”>
 
-### Preplanned deployment
-| Packet | Wave / trigger | Agent role / native identifier | Provider/model/settings | Objective and ownership | Required return / verification | Same-runtime fallback |
-|---|---|---|---|---|---|---|
-| P1 | 1 / immediately after boot | `<verified native ID or capability to resolve>` | `<verified exact model/settings or class + inherit>` | <read-only scope or disjoint files> | <compact findings, commands, evidence> | <verified fallback or startup rule> |
-| P2 | 2 / after <dependency> | `<worker/specialist>` | `<model/settings>` | <bounded implementation ownership> | <changed files, tests, residual risk> | <fallback> |
-| PR | Review / after implementation | `<independent reviewer>` | `<strong-enough model/settings>` | <risk-focused fresh review; no edits unless asked> | <findings with file anchors and gate verdict> | <fallback> |
-
-### Copy-ready dispatch packets
-#### <Lane name> — Wave <N>
-```text
-Repo: <absolute path>
-Objective: <one bounded objective>
-Scope/ownership: <files, modules, or read-only search surface>
-Out of scope: <explicit exclusions and single-writer surfaces>
-Use agent role/model: <verified native identifier or capability to resolve>; <preferred provider/model/settings>; same-runtime fallback <...>
-Authority: Stay within the user's scope and inherited permissions. Do not expose secrets or spawn nested agents. Complete safe preparation for destructive, production, privacy-, security-, cost-sensitive, or other consequential external actions, then return control to the main orchestrator for its required gate and execution.
-Return: findings; changed files; exact commands and results; residual risk; stop condition hit; decisions needed from the orchestrator.
-Verify: <exact commands or evidence>
-Stop if: live code contradicts this packet; verification fails twice after one reasonable fix/retry; work requires files outside scope; or concrete evidence is unavailable.
-```
-
-<Repeat for each likely lane. If no useful lane exists, write "None" and justify SOLO above.>
-
-## 1. Objective
-<1–2 sentences: what we are trying to accomplish and why.>
-
-## 2. Definition of Done
-- [ ] <verifiable acceptance criterion>
-- [ ] <…>
-
-## 3. Current Status
-**Done & verified:**
-- <item> (evidence: <tests/commit>)
-
-**Done, not yet verified:**
-- <item>
-
-**In progress (stopped here):**
-- <the exact thing being worked on, and where/why it paused>
-
-**Not started:**
-- <remaining item>
-
-### Working tree
-- Repo/worktree: `<absolute path>`; branch `<branch>`; upstream `<upstream or none>`
-- HEAD/base: `<HEAD sha>` / `<relevant base sha>`; ahead/behind `<counts>`; <pushed/not pushed>
-- Uncommitted changes and diff scope: <git status/diff summary, or "clean">
-- Stashes/recovery state: <stash list, rollback material, or "None">
-- Active locks/parallel actors/single-writer surfaces: <live evidence or "None found; checked ...">
-- Recent commits:
-  - `<sha>` <subject>
-
-## 4. Required Reading (external prerequisites after this entrypoint)
-| # | Path / reference | Why it matters | What to look for |
-|---|---|---|---|
-| 1 | `<path-or-issue>` | <reason> | <specific thing> |
-| 2 | `<path:line>` | <reason> | <specific thing> |
-
-## 5. Key Decisions & Rationale
-- **<decision>** — <why; what alternatives were rejected and why>. Do not undo without reason.
-
-## 6. Code Map
-- `<file:line>` — <what lives here / its role in this task>
-- Pattern to imitate: `<file>` — <why>
-
-## 7. How to Verify
+## 4. Verification and Risks
 ```bash
-<test command>           # e.g., npm test
-<coverage command>       # e.g., reads .coverage-thresholds.json
-<lint/build command>
+<smallest decisive check set>
 ```
-Expected: <what green looks like>.
+<What green proves, what it does not prove, and any real blocker/recovery note.>
 
-## 8. Open Questions / Blockers
-- <question needing the user, or external dependency>  — or "None"
-
-## 9. Next Action
-<The single concrete next step — the YYY — expanded with any detail the one-liner can't hold.>
-
-## 10. Remaining Work (after the next action)
-1. <subsequent step>
-2. <…>
+## 5. Continuation Mission
+- **Start by:** <one concrete move>
+- **Continue through:** <short outcome ladder>
+- **Keep going until:** <Definition of Done or named hard stop>
 ````
 
----
+## Standard / Governed Handoff Template
+
+````markdown
+# Handoff: <short outcome-oriented title>
+
+**Date:** <YYYY-MM-DD HH:mm> · **Branch:** `<branch>` · **Author session:** <agent/runtime>
+
+## 0. Receiving Session Contract
+> **Main directive:** Own this as the primary execution session. Re-ground in live evidence, use the selected right-sized mechanism, and keep working through the Continuation Mission until Definition of Done or a stated hard stop. Do not stop merely because one milestone or delegated lane finishes.
+
+- **Selected execution shape:** <DIRECT | LEAN | STRUCTURED | METASWARM>
+- **Document depth:** <STANDARD | GOVERNED; why COMPACT is insufficient>
+- **Framework/native mechanism:** <verified invocation/tooling, or capability plus startup fallback>
+- **Why this is the lightest adequate shape:** <dependency, collision, risk, duration, and coordination evidence>
+- **Human decision state:** <none needed | one entry per choice: answered—decision, horizon, and source; deferred—decision, option-preserving default or safe boundary, and revisit trigger>
+- **Boot checks:** <volatile state, instructions, repo/tracker/lock/runtime refreshes>
+- **One-shot horizon:** <largest coherent safe outcome to pursue this session>
+- **Review tier and fresh challenge:** <low/medium/high; who or what challenges which claims and when>
+- **Upshift/downshift triggers:** <evidence that justifies changing the execution shape>
+- **Hard stop conditions:** <approval, product decision, unsafe ambiguity, external blocker, or genuine context boundary>
+- **Authority boundaries:** Delegation does not expand scope or permission. No secrets in packets. Preserve all destructive, production, privacy, security, cost, and external-action gates. <Task-specific limits.>
+
+### Optional execution/delegation map
+<Use only for LEAN, STRUCTURED, or METASWARM when it adds operational value. For DIRECT write “None — direct execution is the lightest adequate shape.”>
+
+| Lane / milestone | Trigger and dependency | Owner or required capability | Scope / single-writer boundary | Evidence return and review |
+|---|---|---|---|---|
+| <lane> | <when ready> | <verified role/tool or startup-resolved capability> | <bounded files/area> | <compact result, commands, findings> |
+
+## 1. Objective and Why
+<Outcome, user value, and rationale that should not be re-litigated.>
+
+## 2. Definition of Done
+- [ ] <observable acceptance criterion>
+- [ ] <external proof, when local green is insufficient>
+
+## 3. Current Status
+
+**Done and verified**
+- <claim> — evidence: <command/path/commit/source>
+
+**Done, not verified**
+- <claim and missing proof>
+
+**In progress / stopped here**
+- <exact boundary and why>
+
+**Not started**
+- <remaining outcome>
+
+### Working state
+- Repo/worktree: `<absolute path>`; branch/upstream: `<values>`
+- HEAD/base and ahead/behind: `<values>`; pushed state: <value>
+- Dirty files/diff/stashes/recovery: <exact scope or none>
+- Active locks/actors/single-writer surfaces: <live evidence or unknown>
+- Relevant external state: <observed timestamp/source, volatile refresh, or unknown>
+
+## 4. Truth Ledger and Required Reading
+
+### Load-bearing claims
+| Claim | Class | Evidence | Checked | Startup refresh? |
+|---|---|---|---|---|
+| <claim> | <Observed/Derived/Volatile/Unknown> | <path, command, output, source> | <time> | <yes/no and how> |
+
+### Read before acting
+| # | Path / reference | Why it matters | What to inspect |
+|---|---|---|---|
+| 1 | `<real path:line or issue>` | <reason> | <specific constraint> |
+
+## 5. Key Decisions and Rationale
+- **<decision>** — <why; rejected alternatives and tradeoff>. For a human answer, mark it **Observed human decision** and cite the current exchange or durable source. For a deferral, record the safe default or boundary and exact revisit trigger. Revisit only when that trigger or contrary live evidence occurs.
+
+## 6. Architecture / Walking Skeleton Map
+- **Existing structure:** <load-bearing boundaries and patterns to preserve>
+- **Skeleton or first structural milestone:** <smallest real buildable/runnable end-to-end path, or “not applicable” with reason>
+- **Expansion order:** <2–5 outcome-level slices ordered by dependency and value>
+- **Avoid:** <speculative abstractions, parallel write collisions, or task-specific traps>
+
+## 7. Verification Loop
+```bash
+<focused test/check command>
+<broader test/build/lint command>
+<external readback command when authorized>
+```
+Expected: <what each command proves and what it does not prove>.
+
+## 8. Open Questions, Risks, and Hard Stops
+- <item, owner, evidence needed, and whether it blocks now; do not hide a qualifying Human Leverage Gate decision here after finalization> — or “None known.”
+
+## 9. Continuation Mission
+- **Target outcome for this one-shot:** <full safe horizon, not merely the first edit>
+- **Start with:** <one concrete action naming the relevant artifact/file/system>
+- **Then continue through:** <short outcome ladder; working skeleton or structural proof before detailed expansion when applicable>
+- **Keep-going rule:** After each green milestone, select the next unblocked slice, implement, verify, challenge, and continue. Resolve ordinary failures; do not stop for a recap.
+- **Completion/stop rule:** Stop only at Definition of Done or a hard stop from Sections 0/8. If context becomes the only limit, write the next Baton from freshly verified state.
+
+## 10. Later Horizons
+<Work intentionally outside this one-shot horizon. Keep this outcome-level, not an exhaustive speculative checklist.>
+````
+
+## Final Self-Check
+
+- [ ] Could a fresh agent operate from this document without the prior chat?
+- [ ] Was the Human Leverage Gate re-run after responses, on later discoveries, and immediately before finalization, with no unnecessary pause for discoverable facts or agent-resolvable engineering uncertainty?
+- [ ] Is every answered or deferred human decision recorded separately with its horizon or option-preserving safe boundary, source, and revisit trigger, with no ambiguity or silence treated as deferral?
+- [ ] Did the handoff author choose and justify the lightest adequate execution shape?
+- [ ] Is the document itself compact, standard, or governed at the lightest adequate depth, without repeated claims or hypothetical future proof?
+- [ ] If Metaswarm was selected, is its concrete advantage over lighter shapes evidence-backed and its availability/setup honest?
+- [ ] Does the Continuation Mission define the longest coherent safe run, rather than a micro-task that ends after one milestone?
+- [ ] For substantial product/feature work, is there a real walking skeleton or structural milestone before detailed expansion? For narrow work, did the handoff avoid needless scaffolding?
+- [ ] Are load-bearing claims classified and tied to current evidence, with volatile items scheduled for boot refresh?
+- [ ] Did a falsification pass and fresh challenge occur at the right review tier, and were supported findings corrected?
+- [ ] Are all paths, issue references, commands, line anchors, and named runtime capabilities real or explicitly unresolved?
+- [ ] Are local proof, external proof, uncertainty, rollback/recovery, dirty state, locks, and active actors represented honestly?
+- [ ] Are dependencies, write ownership, review points, authority boundaries, and hard stops clear without excessive dispatch boilerplate?
+- [ ] Does the closing sentence name the exact file, full continuation mission, and concrete starting move?
 
 ## Anti-Patterns
 
-1. **Vague next action** — "continue where we left off" is useless. Name the file and the change.
-2. **Assuming shared memory** — the next agent has none. If it matters and isn't in the doc, it's lost.
-3. **Dumping the transcript** — synthesize. A 40-line oriented summary beats a 4,000-line paste.
-4. **Stale pointers** — verify paths and line numbers exist before citing them; code may have moved.
-5. **Hiding uncommitted state** — always disclose dirty working tree, stashes, and unpushed commits.
-6. **Multiple "final" sentences** — emit exactly one `Read <file> and do <action>.` line.
-7. **Silent decision loss** — if a choice was made and settled, record it with rationale so it isn't reopened.
-8. **Confusing a skill with a model** — `$efficient-frontier` is the main agent's orchestration workflow; select the actual model separately for each lane.
-9. **One model for every agent** — routing all work to the same frontier profile wastes latency and cost. Match capability and reasoning effort to the lane.
-10. **Speculative or cross-provider agents/models** — never name an agent type or model that was not verified in the receiving runtime, and never assume a Codex option exists in Claude Code or vice versa; include a same-runtime fallback.
-11. **Maximum fan-out by default** — unused or overlapping agents add cost and coordination. Choose optimal useful concurrency after mapping dependencies and collision surfaces.
-12. **Parallel write collisions** — assign disjoint ownership and preserve single-writer files, integration surfaces, and external gates.
-13. **Unready delegation** — do not delegate the immediate blocker or launch a lane before its dependency/trigger is satisfied.
-14. **Self-certification** — implementation evidence is not independent review; use a fresh reviewer and central spot-check.
-15. **Authority expansion by delegation** — subagents inherit the task's scope and safety gates; never use delegation to bypass approval, sandbox, secrets, cost, privacy, security, production, or destructive-action boundaries.
-16. **Unplanned recursive fan-out** — do not let subagents spawn more agents unless the handoff explicitly scopes, budgets, and justifies that nesting.
-17. **False runtime certainty** — when the receiving environment is not inspectable, write capability requirements and `resolve at startup`; do not label guessed catalogs as verified.
-
----
+1. **Framework by habit** — selecting Metaswarm, `$efficient-frontier`, or another orchestrator because it exists rather than because the work needs it.
+2. **Decision burial** — finalizing the handoff while a qualifying human-owned choice remains unresolved in an open-questions section.
+3. **Question theater** — pausing to ask the human for facts or reversible technical choices the agent can verify or decide safely.
+4. **Setup-driven planning** — running framework setup before proving that its coordination value repays the overhead.
+5. **Orchestration theater** — inventories of agents, models, packets, and waves that do not change execution safety or speed.
+6. **Micro-handoff** — defining one small next edit as the whole receiving session when more safe work is already knowable.
+7. **Crystal-ball plan** — prescribing every future implementation step before the walking skeleton or live code can teach the next decision.
+8. **Empty scaffolding** — generating placeholder layers without a buildable/runnable end-to-end proof.
+9. **Self-certification** — accepting the author's or implementer's confidence without contradiction-seeking, independent challenge, and decisive checks.
+10. **Snapshot as truth** — presenting a stale commit, tracker, deploy, store, lock, or runtime observation as current without a refresh rule.
+11. **Maximum fan-out** — launching overlapping or unready lanes; parallelize only independent work with explicit ownership.
+12. **Authority expansion** — using handoff or delegation to bypass approval, sandbox, privacy, security, cost, production, or destructive-action gates.
+13. **Vague launch** — “continue the work” or “follow the plan” without a concrete starting move, outcome ladder, verification loop, and stop conditions.
+14. **Transcript dump** — copying chat history instead of synthesizing operational truth and decisions.
 
 ## Relationship to Other Tools
 
-- Baton serializes context **out of** a session for the next one — the mirror of any "prime" / "load context" step that loads knowledge **into** a session.
-- For mid-execution work under an orchestration framework, reference its plan/state files (e.g. `.beads/plans/active-plan.md`) rather than restating them, so the next agent can reload native state and then read this doc for the human-readable narrative.
-- Capturing durable *learnings* (patterns, lessons) is a separate job from Baton — Baton captures *this task's* transient state to resume it, not long-lived knowledge.
-
----
+- Baton serializes task state **out of** a session; project-native “prime” or context-loading mechanisms load state **into** the next one.
+- Reference existing plan, tracker, or framework state instead of duplicating it. Live repository and external state outrank persisted summaries.
+- Use native platform delegation and project tooling before adding orchestration infrastructure. Select Metaswarm only for work whose coordination needs justify it.
+- Capture durable organizational knowledge separately. Baton preserves the transient state and execution contract for this continuation.
 
 ## Attribution
 
-Baton is derived from the **handoff** skill in [metaswarm](https://github.com/dsifry/metaswarm) by Dave Sifry (MIT License). It adds **Section 0 "Receiving Session Orchestration"**: an `$efficient-frontier` main-agent directive, verified specialist/model routing, collision-aware deployment waves, copy-ready subagent packets, and independent review planning. It also generalizes the workflow across orchestration frameworks, issue trackers, and agent runtimes. See `NOTICE` for full attribution.
+Baton is derived from the **handoff** skill in [metaswarm](https://github.com/dsifry/metaswarm) by Dave Sifry (MIT License). It retains the self-contained handoff document and exact closing-sentence contract while generalizing execution across frameworks and runtimes. Baton adds a pre-finalization human leverage gate with explicit defer semantics, a lightest-adequate execution ladder, an evidence-led adversarial review spine, a long one-shot continuation mission, and architecture/walking-skeleton-first guidance for substantial product work. Metaswarm remains an available execution choice when its coordination and governance machinery is justified. See `NOTICE` for full attribution.
