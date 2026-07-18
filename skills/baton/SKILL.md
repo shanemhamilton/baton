@@ -1,17 +1,17 @@
 ---
 name: baton
-description: Pass the baton — write a single self-contained handoff document so a fresh session resumes with zero context loss, and end with one "Read XXX.md and do YYY." sentence. The handoff also tells the next session its own shape — which model tier (latest Sonnet vs latest Opus), SOLO vs SWARM mode, and review depth — and in SWARM mode directs the orchestrator to front-load a wide parallel subagent fan-out for both comprehensiveness and speed. Use when a session is ending, context is about to compact, switching sessions or machines, running low on context, wrapping up, or the user asks to hand off / resume later / continue in a new session. Project-agnostic.
+description: Pass the baton — write one self-contained operational entrypoint so a fresh session resumes without relying on the prior chat, and end with one "Read XXX.md and do YYY." sentence. The handoff normally appoints the main agent as the session orchestrator following `$efficient-frontier`, preplans the highest-value subagent waves, selects verified or startup-resolved specialized agent types and fit-for-purpose Claude, Codex, or other available models, defines authority/ownership/review gates, and leaves copy-ready dispatch packets. Use when a session is ending, context is about to compact, switching sessions or machines, running low on context, wrapping up, or the user asks to hand off, resume later, or continue in a new session. Project-agnostic.
 ---
 
 # Baton — Handoff Skill
 
-Pass the baton cleanly: capture everything a **fresh agent with zero prior context** needs to resume the current work, write it to one self-contained markdown document, and hand it off with a single unambiguous sentence:
+Pass the baton cleanly: capture the operational state and every load-bearing decision a **fresh agent with zero prior context** needs, write one self-contained entrypoint to the work, and hand it off with a single unambiguous sentence:
 
 > **Read `docs/handoffs/<file>.md` and do `<the next concrete action>`.**
 
-Use this when a session is ending, when context is about to be compacted, when switching machines or sessions, or when the user explicitly asks for a handoff. The goal is **zero context loss**: the receiving agent should act correctly after reading exactly one file.
+Use this when a session is ending, when context is about to be compacted, when switching machines or sessions, or when the user explicitly asks for a handoff. The receiving agent should act correctly from this single entrypoint without the prior conversation, while still reading any source artifacts it explicitly lists as prerequisites.
 
-This skill is project-agnostic. It has no hard dependency on any orchestration framework, issue tracker, or plugin — where it mentions beads, metaswarm, or a coverage-thresholds file, those are *examples*; fold in whatever the current project actually uses, and write "None" where a thing does not apply.
+This skill is project-agnostic. It strongly prefers the `efficient-frontier` skill for the receiving orchestrator. If that named skill is unavailable, embed its core orchestration contract in Section 0 so the session follows the same behavior without stalling. References to beads, metaswarm, Codex roles, Claude models, or coverage files are examples; use only what the actual project and receiving runtime expose.
 
 ---
 
@@ -19,7 +19,7 @@ This skill is project-agnostic. It has no hard dependency on any orchestration f
 
 This skill produces exactly two things:
 
-1. **A handoff document** at `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md` (created if the directory does not exist). Comprehensive, self-contained, and links to — or quotes — every artifact the next agent must read.
+1. **A handoff document** at `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md` (created if the directory does not exist). A comprehensive operational entrypoint that embeds load-bearing decisions and links to or quotes every prerequisite artifact.
 2. **A single closing sentence**, and nothing else after the document is written, of the exact form:
 
    ```text
@@ -46,15 +46,14 @@ Pull from: the user's original request, any tracked issue (`gh issue view <n>` i
 
 ### Step 2 — Load any persisted project state (optional)
 
-If the project persists state — a plan doc, a task tracker, an orchestration framework's context files — read and fold in whatever exists. Do **not** duplicate it blindly; summarize and link. Common examples (skip any that don't apply):
+If the project persists state — a plan doc, task tracker, orchestration context, locks, or active-agent state — read and fold in whatever exists. Do **not** duplicate it blindly; summarize and link. Common examples (run only those that apply):
 
 ```bash
-ls docs/plans/*-plan.md 2>/dev/null        # an approved plan, if mid-execution
-ls .beads/plans/active-plan.md 2>/dev/null # beads/metaswarm plan, if present
-bd prime --work-type recovery 2>/dev/null  # beads state reload, if beads is used
+rg --files docs/plans .beads/plans         # discover plan files if these directories exist
+bd prime                                   # beads state reload only when beads is installed and used
 ```
 
-If an active plan exists, the handoff must point to it explicitly and state which unit/phase is in progress.
+Do not suppress errors from state-refresh commands. Record an unavailable tool or failed refresh as unresolved evidence. If an active plan exists, point to it explicitly and state which unit/phase is in progress.
 
 ### Step 3 — Establish current status
 
@@ -69,12 +68,17 @@ Capture the working-tree reality so the next agent is not surprised:
 
 ```bash
 git branch --show-current
+git rev-parse --show-toplevel
+git rev-parse HEAD
+git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'
+git rev-list --left-right --count 'HEAD...@{upstream}'
 git status --short
+git stash list
 git log --oneline -10
 git diff --stat
 ```
 
-Note uncommitted changes, stashes, and whether the branch is pushed.
+Record the absolute repo/worktree, branch and upstream, HEAD and relevant base, ahead/behind counts, uncommitted diff scope, stashes, pushed state, recovery/rollback state, and any active locks or parallel actors. Distinguish live evidence from remembered or persisted claims.
 
 ### Step 4 — Identify required reading
 
@@ -97,20 +101,33 @@ Pick the one most important, concrete next step. It must be:
 - **Specific** — names files, functions, or DoD items.
 - **Bounded** — the immediate next move, not the entire roadmap (the rest goes in "Remaining Work").
 
-### Step 5b — Specify the receiving session
+### Step 5b — Design the receiving session and dispatch plan
 
-Decide *who* resumes this work — a fresh session needs to know its own shape before it starts:
+Make the next session's operating model executable before handoff:
 
-- **Model / tier** — default to the latest **Sonnet** for a clear, bounded task; the latest **Opus** when the work needs an orchestrator driving many subagents or deeper reasoning. **Never pin a version number** — write "Sonnet (latest)" / "Opus (latest)" so the handoff can't go stale as new models ship.
-- **Mode** — `SOLO` (one agent does the whole thing) vs `SWARM` (an orchestrator decomposes it across subagents and drives the review flow — e.g. metaswarm, smokejumper, or a lead/coordinator agent).
-- **Parallelism (SWARM only)** — tell the Opus orchestrator to treat the **opening phase as investment**: spend real time up front mapping the work into independent units, then dispatch the **maximum safe number of subagents at once** (batched in a single message so they run concurrently, never one-at-a-time). Wide fan-out is what buys *both* comprehensiveness (more ground covered) and speed (wall-clock = the slowest single agent, not the sum). Serialize only where a genuine dependency forces it. Guardrails that still hold: each subagent gets an explicit, scoped file list; safety-critical logic routes to a guardian/reviewer; no subagent self-certifies its own gate.
-- **Review depth** — a single gate for a small change; the full adversarial review flow for user-facing or safety-critical work.
+1. **Appoint the main agent.** In almost all handoffs, state: **"You are the main session orchestrator. Invoke and follow `$efficient-frontier` before acting."** Use the receiving platform's verified invocation syntax (`$efficient-frontier`, `/efficient-frontier`, or an explicit skill path). If the skill is not verified as installed, say so and include the fallback contract from the template. The main agent retains architecture, prioritization, ambiguity resolution, risk decisions, synthesis, integration, and final review. Use `SOLO` only when the next action is trivial, tightly coupled, or the immediate blocker cannot usefully be delegated; record the reason.
+2. **Discover the real runtime and agent catalog.** Name the expected receiving platform/provider and whether it is inspectable now. Inspect applicable instruction files, project/global agent configuration, installed skills, callable agent roles/native identifiers, model overrides, effort controls, concurrency, and nesting limits. Prefer a verified domain specialist, then the platform's read-heavy explorer or execution worker, then its general-purpose fallback. Never invent a name or assume a Codex launch field exists in Claude Code (or vice versa). If the future runtime cannot be inspected, record capability requirements plus `resolve at startup`, not fictional verification.
+3. **Separate judgment from delegated work.** Keep frontier-only decisions with the main agent. Identify independent research, repository mapping, test/log reduction, bounded coding, mechanical edits, browser/device passes, and specialist review that can leave the main context clean.
+4. **Plan waves, not blanket fan-out.** Determine the smallest high-value batch that saturates useful independent work within the runtime's known or startup-resolved concurrency cap. Reserve the main-agent slot, map dependency and collision surfaces first, and serialize shared-file, single-writer, immediate-blocker, destructive, or externally gated work. Parallelize read-heavy lanes freely; parallelize writes only with disjoint ownership. Do not permit nested fan-out unless the handoff explicitly budgets and scopes it.
+5. **Select a model per lane.** Be provider-neutral. Resolve current availability at handoff time and record an exact preferred model, reasoning/effort setting where supported, and same-runtime fallback. Treat these model families as routing guidance, not guaranteed availability:
 
-Record these in **Section 0** of the document. Match depth to the task: a bounded fix is `SOLO` + latest Sonnet + one gate; a multi-file feature is a latest-Opus orchestrator + Sonnet subagents + full review.
+   | Lane shape | Preferred current class | Reasoning | Use when |
+   |---|---|---|---|
+   | Main orchestration, architecture, ambiguous implementation, safety/security review, final synthesis | strongest available frontier model (for example OpenAI `gpt-5.6-sol` or the latest verified Claude Opus) | high–xhigh or provider equivalent | Judgment quality matters more than latency |
+   | Bounded implementation, exploration, large-file review, test/log reduction, documentation | fast balanced agentic model (for example OpenAI `gpt-5.6-terra` or the latest verified Claude Sonnet) | low–high or provider equivalent, matched to complexity | Scope and acceptance criteria are clear |
+   | Tight edit/check loops or small mechanical coding steps | fastest suitable coding model the runtime exposes; in Codex, consider Codex-Spark (for example `gpt-5.3-codex-spark`) when available; in Claude, prefer the verified Sonnet option when its capability/latency fits | low–medium or provider equivalent | Fast iteration matters more than broader capability; never use a latency-first model as the sole high-risk reviewer |
+   | Custom specialist with a configured model | inherit the specialist configuration unless the task requires a stronger verified override | configured | The specialist's domain instructions are the main source of value |
+
+   Do not write an unsupported model slug or silently substitute a model from another provider. If availability cannot be verified, specify the capability class plus `inherit`, and tell the orchestrator to resolve the best available same-runtime match at startup.
+6. **Prewrite the deployment.** For every likely subagent, record its wave, launch trigger, native agent role/identifier (or capability requirement to resolve), preferred model/settings, objective, file/area ownership, dependencies, verification, expected compact return, and fallback. Include a copy-ready self-contained prompt with repo path, scope, out-of-scope areas, required evidence, and stop conditions.
+7. **Preplan independent review.** The implementer never self-certifies. Name a separate reviewer or specialist, select a model strong enough for the risk, and state the evidence the main orchestrator must personally spot-check before completion.
+8. **Preserve authority and safety.** Delegation never expands user scope, permissions, or approval. Keep destructive, irreversible, production, privacy-, security-, and cost-sensitive actions with the main agent; complete safe preparation and fresh independent verification, then obtain required user approval. Never put secrets in packets. Record hard thread/nesting/cost limits and inherited sandbox/tool constraints.
+
+Use `SWARM` by default when at least one independent lane materially improves speed or quality enough to justify its coordination cost. The point is **optimal useful concurrency**, not the largest possible agent count. A small task may use one bounded worker plus one fresh reviewer; a cross-cutting feature may use several first-wave scouts, collision-safe implementation lanes, and a final specialist/QC wave.
 
 ### Step 6 — Write the document
 
-Create `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md` using the template below. Fill every section; write "None" where a section genuinely does not apply rather than deleting it.
+Create `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md` using the template below. Fill every numbered section. In a justified `SOLO` handoff, write "None — SOLO because ..." for the deployment table/packets instead of expanding empty orchestration boilerplate.
 
 ### Step 7 — Emit the handoff sentence
 
@@ -120,8 +137,14 @@ After writing the file, verify it (Step 8), then output the single sentence — 
 
 Confirm, as if you were the receiving agent who knows nothing:
 
-- [ ] Does Section 0 name the model tier (as "latest", unpinned), mode, and review depth so the receiver knows its own shape?
-- [ ] In SWARM mode, does Section 0 carry the front-load-and-fan-out orchestration directive?
+- [ ] Does Section 0 explicitly appoint the main agent as orchestrator following `$efficient-frontier`, or justify the rare `SOLO` exception?
+- [ ] Is `$efficient-frontier` verified available, or is its provider-neutral fallback contract embedded?
+- [ ] Is the receiving runtime named, and is each agent/model choice either evidence-backed or explicitly marked `resolve at startup` with a capability requirement?
+- [ ] Does the deployment table choose specialized agents and model/effort by lane rather than one generic subagent profile?
+- [ ] Are concurrency, dependencies, collision surfaces, single-writer files, and launch triggers explicit?
+- [ ] Is each planned subagent prompt self-contained and copy-ready, with ownership, verification, expected evidence, and stop conditions?
+- [ ] Is fresh review independent from implementation, with the main orchestrator retaining final judgment?
+- [ ] Do packets preserve user authority, sandbox/tool limits, secrets, hard caps, and approval gates without nested unplanned fan-out?
 - [ ] Could I start work from this document alone, without the prior conversation?
 - [ ] Are all referenced files/paths/issues real and correct (spot-check with `ls`/`git`)?
 - [ ] Is the next action unambiguous and immediately startable?
@@ -138,14 +161,58 @@ Confirm, as if you were the receiving agent who knows nothing:
 
 **Date**: <YYYY-MM-DD HH:mm> · **Branch**: `<branch>` · **Author session**: <model/agent>
 
-## 0. Receiving Session Config
-> Who should pick this up. The first thing the next session reads — it sets model tier, orchestration mode, and review depth before any work begins. Use "latest" for the model, never a pinned version.
-- **Model / tier:** <Sonnet (latest)  |  Opus (latest) orchestrator>
-- **Mode:** <SOLO single agent  |  SWARM: orchestrator + subagents (e.g. metaswarm / smokejumper / lead agent)>
-- **Subagents:** <none  |  N× Sonnet (latest): [decomposition list]>
+## 0. Receiving Session Orchestration
+> **Main-agent directive:** You are the session orchestrator. Invoke and follow `$efficient-frontier` using the verified invocation below. If it is unavailable, follow the embedded fallback contract. Keep architecture, prioritization, risk decisions, synthesis, integration, and final review in the main session; delegate only the bounded lanes below.
+- **Receiving runtime/provider:** <Codex app/CLI, Claude Code, other; version/surface if known; verified now or expected>
+- **Efficient Frontier availability:** <verified invocation/path  |  unavailable or unknown — use embedded contract and resolve at startup>
+- **Main-agent provider/model/settings:** <verified strongest available frontier choice; e.g. OpenAI `gpt-5.6-sol`, high, or latest verified Claude Opus with supported settings; otherwise capability class + `resolve at startup`>
+- **Mode:** <SWARM by default  |  SOLO with one-line justification>
+- **Runtime budget:** <hard thread cap; usable subagent slots after reserving main; nesting cap; cost/time cap; or unresolved startup check>
 - **Review depth:** <light: [single gate]  |  full adversarial flow → review-gate marker (e.g. `.adversarial-review-passed`)>
-- **Boot command:** <e.g. `bd prime --work-type recovery`, then read this doc — or just "read this doc">
-- **Orchestration directive (SWARM only):** Front-load the session — spend the opening phase decomposing the work, then launch the **maximum safe number of subagents in parallel** (all in one batched dispatch) to get it done both comprehensively and fast. Serialize only on real dependencies. Each subagent stays scoped to its file list; safety-critical logic goes to a guardian/reviewer; no subagent self-certifies.
+- **Boot sequence:** <reload live tracker/repo/runtime state; verify agent/model availability; then dispatch Wave 1>
+- **Why this shape:** <why these lanes, models, dependencies, and review depth fit this task>
+- **Authority boundaries:** Delegation does not expand scope or approval. No secrets in packets. Keep destructive, production, privacy-, security-, and cost-sensitive actions with the main agent behind fresh independent verification and required user approval. <Add task-specific boundaries.>
+
+### Efficient Frontier fallback contract
+<Include when the named skill is unavailable or unverified; otherwise write the verified path/invocation and "not needed".>
+- Keep architecture, prioritization, ambiguity, risk, synthesis, integration, and final review with the strongest main model.
+- Delegate bounded, repeatable, token-heavy work to the cheapest/fastest capable agents with disjoint ownership and compact evidence returns.
+- Treat subagent output as evidence, not a verdict; inspect high-risk diffs and rerun or spot-check decisive verification centrally.
+- Stop delegation on live-state contradiction, repeated verification failure, scope expansion, or missing evidence.
+
+### Runtime/catalog evidence
+| Item | Value or required capability | Source / command | Checked |
+|---|---|---|---|
+| Runtime and version | <value> | <evidence> | <timestamp or `resolve at startup`> |
+| Agent roles / native identifiers | <exact values or requirements> | <evidence> | <timestamp or `resolve at startup`> |
+| Models and provider settings | <exact values or capability classes> | <evidence> | <timestamp or `resolve at startup`> |
+| Thread/nesting limits | <hard limits> | <evidence> | <timestamp or `resolve at startup`> |
+
+### Frontier-only decisions
+- <decision the main orchestrator must retain>
+
+### Preplanned deployment
+| Packet | Wave / trigger | Agent role / native identifier | Provider/model/settings | Objective and ownership | Required return / verification | Same-runtime fallback |
+|---|---|---|---|---|---|---|
+| P1 | 1 / immediately after boot | `<verified native ID or capability to resolve>` | `<verified exact model/settings or class + inherit>` | <read-only scope or disjoint files> | <compact findings, commands, evidence> | <verified fallback or startup rule> |
+| P2 | 2 / after <dependency> | `<worker/specialist>` | `<model/settings>` | <bounded implementation ownership> | <changed files, tests, residual risk> | <fallback> |
+| PR | Review / after implementation | `<independent reviewer>` | `<strong-enough model/settings>` | <risk-focused fresh review; no edits unless asked> | <findings with file anchors and gate verdict> | <fallback> |
+
+### Copy-ready dispatch packets
+#### <Lane name> — Wave <N>
+```text
+Repo: <absolute path>
+Objective: <one bounded objective>
+Scope/ownership: <files, modules, or read-only search surface>
+Out of scope: <explicit exclusions and single-writer surfaces>
+Use agent role/model: <verified native identifier or capability to resolve>; <preferred provider/model/settings>; same-runtime fallback <...>
+Authority: Stay within the user's scope and inherited permissions. Do not expose secrets or spawn nested agents. Complete safe preparation for destructive, production, privacy-, security-, cost-sensitive, or other consequential external actions, then return control to the main orchestrator for its required gate and execution.
+Return: findings; changed files; exact commands and results; residual risk; stop condition hit; decisions needed from the orchestrator.
+Verify: <exact commands or evidence>
+Stop if: live code contradicts this packet; verification fails twice after one reasonable fix/retry; work requires files outside scope; or concrete evidence is unavailable.
+```
+
+<Repeat for each likely lane. If no useful lane exists, write "None" and justify SOLO above.>
 
 ## 1. Objective
 <1–2 sentences: what we are trying to accomplish and why.>
@@ -168,12 +235,15 @@ Confirm, as if you were the receiving agent who knows nothing:
 - <remaining item>
 
 ### Working tree
-- Branch `<branch>`, <pushed/not pushed>
-- Uncommitted changes: <git status --short summary, or "clean">
+- Repo/worktree: `<absolute path>`; branch `<branch>`; upstream `<upstream or none>`
+- HEAD/base: `<HEAD sha>` / `<relevant base sha>`; ahead/behind `<counts>`; <pushed/not pushed>
+- Uncommitted changes and diff scope: <git status/diff summary, or "clean">
+- Stashes/recovery state: <stash list, rollback material, or "None">
+- Active locks/parallel actors/single-writer surfaces: <live evidence or "None found; checked ...">
 - Recent commits:
   - `<sha>` <subject>
 
-## 4. Required Reading (read these before acting)
+## 4. Required Reading (external prerequisites after this entrypoint)
 | # | Path / reference | Why it matters | What to look for |
 |---|---|---|---|
 | 1 | `<path-or-issue>` | <reason> | <specific thing> |
@@ -216,7 +286,16 @@ Expected: <what green looks like>.
 5. **Hiding uncommitted state** — always disclose dirty working tree, stashes, and unpushed commits.
 6. **Multiple "final" sentences** — emit exactly one `Read <file> and do <action>.` line.
 7. **Silent decision loss** — if a choice was made and settled, record it with rationale so it isn't reopened.
-8. **Pinned model versions** — write "Sonnet (latest)" / "Opus (latest)", never a version string that ages out.
+8. **Confusing a skill with a model** — `$efficient-frontier` is the main agent's orchestration workflow; select the actual model separately for each lane.
+9. **One model for every agent** — routing all work to the same frontier profile wastes latency and cost. Match capability and reasoning effort to the lane.
+10. **Speculative or cross-provider agents/models** — never name an agent type or model that was not verified in the receiving runtime, and never assume a Codex option exists in Claude Code or vice versa; include a same-runtime fallback.
+11. **Maximum fan-out by default** — unused or overlapping agents add cost and coordination. Choose optimal useful concurrency after mapping dependencies and collision surfaces.
+12. **Parallel write collisions** — assign disjoint ownership and preserve single-writer files, integration surfaces, and external gates.
+13. **Unready delegation** — do not delegate the immediate blocker or launch a lane before its dependency/trigger is satisfied.
+14. **Self-certification** — implementation evidence is not independent review; use a fresh reviewer and central spot-check.
+15. **Authority expansion by delegation** — subagents inherit the task's scope and safety gates; never use delegation to bypass approval, sandbox, secrets, cost, privacy, security, production, or destructive-action boundaries.
+16. **Unplanned recursive fan-out** — do not let subagents spawn more agents unless the handoff explicitly scopes, budgets, and justifies that nesting.
+17. **False runtime certainty** — when the receiving environment is not inspectable, write capability requirements and `resolve at startup`; do not label guessed catalogs as verified.
 
 ---
 
@@ -230,4 +309,4 @@ Expected: <what green looks like>.
 
 ## Attribution
 
-Baton is derived from the **handoff** skill in [metaswarm](https://github.com/dsifry/metaswarm) by Dave Sifry (MIT License). It adds the **Section 0 "Receiving Session Config"** (model tier, `SOLO`/`SWARM` mode, review depth), the **`SWARM` parallel-fan-out orchestration directive** (front-load, then dispatch the maximum safe number of subagents concurrently), the "latest, never pinned" model rule, and a framework-agnostic generalization. See `NOTICE` for full attribution.
+Baton is derived from the **handoff** skill in [metaswarm](https://github.com/dsifry/metaswarm) by Dave Sifry (MIT License). It adds **Section 0 "Receiving Session Orchestration"**: an `$efficient-frontier` main-agent directive, verified specialist/model routing, collision-aware deployment waves, copy-ready subagent packets, and independent review planning. It also generalizes the workflow across orchestration frameworks, issue trackers, and agent runtimes. See `NOTICE` for full attribution.

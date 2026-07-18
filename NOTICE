@@ -18,14 +18,15 @@ The document structure, method steps, template, and anti-patterns originate
 from metaswarm's handoff skill and are used under the terms of the MIT License.
 
 Baton's additions over the original:
-  - Section 0 "Receiving Session Config" — declares the next session's model
-    tier, SOLO vs SWARM mode, subagent decomposition, review depth, and boot
-    command before any work begins.
-  - The SWARM parallel-fan-out orchestration directive — instructs an
-    orchestrator to front-load planning, then dispatch the maximum safe number
-    of subagents concurrently for both comprehensiveness and speed.
-  - The "latest, never pinned" model-tier rule so handoffs do not age out as
-    new models ship.
+  - Section 0 "Receiving Session Orchestration" — appoints the main agent as
+    the session orchestrator following $efficient-frontier and declares review
+    depth and boot sequence before any work begins.
+  - Provider-neutral specialist and model routing for likely subagent lanes,
+    including capability-aware reasoning effort, Claude and Codex model
+    families, and same-runtime availability fallbacks.
+  - Collision-aware deployment waves with launch triggers, disjoint ownership,
+    single-writer boundaries, copy-ready packets, and independent review.
+  - Optimal useful concurrency rather than blanket maximum fan-out.
   - Generalization to be framework-agnostic (no hard dependency on any
     orchestration framework, issue tracker, or plugin).
 

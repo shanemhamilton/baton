@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Baton — pass the baton, cleanly</title>
-<meta name="description" content="Baton is a portable AI session-handoff skill: zero-context-loss handoffs that tell the next session its model tier, solo-vs-swarm mode, review depth, and to fan out subagents in parallel." />
+<meta name="description" content="Baton is a portable AI session-handoff skill: one operational entrypoint that removes prior-chat dependency and preplans the next session's orchestrator, specialist/model routing, collision-safe deployment waves, and review." />
 <meta name="theme-color" content="#0e1116" />
 <meta property="og:title" content="Baton — pass the baton, cleanly" />
-<meta property="og:description" content="Zero-context-loss AI session handoffs. Tell the next session who it is — and watch a swarm outrun a solo runner." />
+<meta property="og:description" content="Portable Codex and Claude handoffs that preplan the next session's orchestrator, specialist models, safe deployment waves, and review." />
 <meta property="og:type" content="website" />
 <style>
   :root{
@@ -27,6 +27,7 @@
   }
   a{color:var(--gold);text-decoration:none}
   a:hover{text-decoration:underline}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
   .mono{font-family:var(--mono)}
   h1,h2,h3{line-height:1.15;letter-spacing:-.02em;margin:0}
@@ -78,13 +79,23 @@
   .btn:hover{border-color:var(--baton)}
 
   /* ---------- install strip ---------- */
-  .install{max-width:680px;margin:26px auto 0;display:flex;align-items:stretch;
+  .install{max-width:780px;margin:26px auto 0;display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;align-items:stretch;
     border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0e13}
-  .install code{flex:1;font-family:var(--mono);font-size:13px;color:#cdd6e4;
+  .install-targets{display:flex;gap:4px;padding:5px;border-right:1px solid var(--line);
+    background:var(--surface)}
+  .install-targets button{border:0;border-radius:7px;background:transparent;color:var(--muted);
+    padding:8px 11px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:12px}
+  .install-targets button.on{background:var(--baton);color:#1a0f07}
+  .install code{font-family:var(--mono);font-size:13px;color:#cdd6e4;min-width:0;
     padding:14px 16px;text-align:left;overflow-x:auto;white-space:nowrap}
-  .install button{border:0;border-left:1px solid var(--line);background:var(--surface2);
+  .install-copy{border:0;border-left:1px solid var(--line);background:var(--surface2);
     color:var(--text);padding:0 18px;cursor:pointer;font-weight:600;font-size:13px}
-  .install button:hover{background:var(--baton);color:#1a0f07}
+  .install-copy:hover{background:var(--baton);color:#1a0f07}
+  @media(max-width:720px){
+    .install{grid-template-columns:minmax(0,1fr) auto}
+    .install-targets{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--line)}
+  }
 
   /* ---------- sections ---------- */
   section{padding:56px 0;border-top:1px solid var(--line)}
@@ -153,6 +164,11 @@
   footer .heart{color:var(--baton)}
   .pill{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--muted);
     border:1px solid var(--line);border-radius:999px;padding:4px 11px;margin:3px}
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+      transition-duration:.01ms!important}
+  }
 </style>
 </head>
 <body>
@@ -168,7 +184,7 @@
   <div class="wrap">
     <span class="kicker">AI session handoff · MIT · framework-agnostic</span>
     <h1>Pass the <span class="grad">baton</span>,<br/>cleanly.</h1>
-    <p class="tag">One self-contained document so a fresh session resumes with <b>zero context loss</b> — and knows exactly who it should be.</p>
+    <p class="tag">One self-contained operational entrypoint so a fresh session resumes <b>without the prior chat</b> — and knows exactly how to operate.</p>
 
     <div class="track" aria-hidden="true">
       <div class="laneline"></div>
@@ -182,9 +198,13 @@
       <a class="btn" href="https://github.com/shanemhamilton/baton">Star on GitHub</a>
     </div>
 
-    <div class="install" title="Install for Claude Code">
-      <code id="installcmd">curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/baton/SKILL.md -o ~/.claude/skills/baton/SKILL.md</code>
-      <button id="copybtn" onclick="copyInstall()">Copy</button>
+    <div class="install" id="installbox" title="Install Baton globally for Claude Code">
+      <div class="install-targets" role="group" aria-label="Choose agent platform">
+        <button type="button" class="on" data-install-target="claude" aria-pressed="true" onclick="setInstallTarget('claude')">Claude</button>
+        <button type="button" data-install-target="codex" aria-pressed="false" onclick="setInstallTarget('codex')">Codex</button>
+      </div>
+      <code id="installcmd" aria-live="polite">mkdir -p ~/.claude/skills/baton &amp;&amp; curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/baton/SKILL.md -o ~/.claude/skills/baton/SKILL.md</code>
+      <button type="button" class="install-copy" id="copybtn" onclick="copyInstall()">Copy</button>
     </div>
   </div>
 </div>
@@ -193,8 +213,8 @@
 <section id="demo">
   <div class="wrap">
     <div class="eyebrow">The core idea, running</div>
-    <h2>Wall-clock = the slowest agent, not the sum.</h2>
-    <p class="lead">A Baton handoff can tell the next session to <b>fan out</b>. Flip the switch and dispatch five subagents. In <span style="color:var(--solo)">SOLO</span> they run one after another. In <span style="color:var(--swarm)">SWARM</span> they launch together — and finish in the time of the single slowest one.</p>
+    <h2>Parallel when the lanes really are independent.</h2>
+    <p class="lead">This example has five independent support lanes, so a Baton handoff can safely run them together. Real handoffs choose the smallest useful batch, reserve the main orchestrator, and serialize dependencies or overlapping writes.</p>
 
     <div class="demo">
       <div class="demo-controls">
@@ -202,7 +222,7 @@
           <button data-mode="solo" class="on" onclick="setMode('solo')">SOLO · serial</button>
           <button data-mode="swarm" onclick="setMode('swarm')">SWARM · parallel</button>
         </div>
-        <button class="btn primary go" id="dispatchbtn" onclick="dispatch()">▶ Dispatch 5 agents</button>
+        <button class="btn primary go" id="dispatchbtn" onclick="dispatch()">▶ Dispatch 5 safe lanes</button>
       </div>
 
       <div class="clocks">
@@ -219,7 +239,7 @@
       <div class="lanes" id="lanes"></div>
 
       <div class="demo-note" id="demoNote">
-        <b>SOLO:</b> total time is the <b>sum</b> of every agent — 9.1s. Now switch to SWARM and dispatch again.
+        <b>SOLO:</b> running these five independent lanes serially takes their <b>sum</b> — 9.1s. Switch to SWARM to run the same safe batch together.
       </div>
     </div>
   </div>
@@ -230,27 +250,27 @@
   <div class="wrap">
     <div class="eyebrow">What makes Baton different</div>
     <h2>Section 0: the next session's shape.</h2>
-    <p class="lead">Most handoffs say <i>what to do next</i>. Baton opens by declaring <i>who does it</i> — model tier, mode, review depth — before a single line of work begins.</p>
+    <p class="lead">Most handoffs say <i>what to do next</i>. Baton opens by defining <i>how the next session operates</i> — main orchestrator, specialist/model routing, deployment waves, ownership, and review — before a single line of work begins.</p>
 
     <div class="grid2">
       <div class="card">
         <h3>The rules it encodes</h3>
         <p style="color:var(--muted);margin:10px 0 0">
-          <b style="color:var(--text)">Model tier</b> — latest <span style="color:var(--go)">Sonnet</span> for a bounded task, latest <span style="color:var(--swarm)">Opus</span> to orchestrate. Written as <span class="mono" style="color:var(--baton)">"latest"</span>, never pinned, so handoffs never age out.<br/><br/>
-          <b style="color:var(--text)">Mode</b> — <span style="color:var(--solo)">SOLO</span> (one agent) vs <span style="color:var(--swarm)">SWARM</span> (orchestrator + subagents).<br/><br/>
-          <b style="color:var(--text)">Parallelism</b> — front-load planning, then dispatch the maximum safe number of subagents at once. Guardrails hold: scoped file lists, safety-critical logic to a guardian, no self-certifying.
+          <b style="color:var(--text)">Main agent</b> — the session orchestrator follows <span class="mono" style="color:var(--baton)">$efficient-frontier</span>, or its embedded fallback contract when unavailable, and retains architecture, risk, integration, synthesis, and final review.<br/><br/>
+          <b style="color:var(--text)">Specialists and models</b> — verify real agent types, then match each lane to Claude Opus/Sonnet, GPT-5.6 Sol/Terra, or available Codex-Spark based on capability, latency, and risk.<br/><br/>
+          <b style="color:var(--text)">Deployment</b> — choose optimal useful concurrency, explicit launch triggers, disjoint ownership, authority gates, single-writer boundaries, and independent review.
         </p>
       </div>
       <div class="doc" aria-label="example Section 0">
-<span class="c">## 0. Receiving Session Config</span>
-<span class="k">- Model / tier:</span> Opus <span class="s">(latest)</span> orchestrator
-<span class="k">- Mode:</span> <span class="s">SWARM</span> — orchestrator + subagents
-<span class="k">- Subagents:</span> 5× Sonnet <span class="s">(latest)</span>
+<span class="c">## 0. Receiving Session Orchestration</span>
+<span class="k">- Main directive:</span> orchestrate with <span class="s">$efficient-frontier</span>
+<span class="k">- Main model:</span> verified Opus / Sol frontier model
+<span class="k">- Wave 1:</span> explorer + domain specialist
+<span class="k">- Models:</span> Sonnet / Terra / Spark where each fits
 <span class="k">- Review depth:</span> full adversarial flow
-<span class="k">- Boot:</span> read this doc, then decompose
-<span class="k">- Directive:</span> front-load, then fan out
-  the max safe subagents in one batch —
-  comprehensive <span class="s">and</span> fast.
+<span class="k">- Boot:</span> refresh live state, verify catalog
+<span class="k">- Dispatch:</span> copy-ready packets with
+  ownership, triggers, evidence, and fallbacks.
       </div>
     </div>
   </div>
@@ -269,8 +289,8 @@
 <section>
   <div class="wrap">
     <div class="eyebrow">Get going</div>
-    <h2>Drop in one file. Say <span class="mono" style="font-size:.7em">/baton</span>.</h2>
-    <p class="lead">Baton is plain Markdown with YAML frontmatter — no runtime, no dependencies. Install globally for Claude Code, or per-project. It also works with Codex and Gemini CLI setups that read a <span class="mono">skills/</span> directory.</p>
+    <h2>One file. Native in Codex and Claude.</h2>
+    <p class="lead">Baton is plain Markdown with YAML frontmatter — no runtime or package dependencies. Install it globally for both platforms, then invoke <span class="mono">$baton</span> in Codex or <span class="mono">/baton</span> in Claude Code.</p>
     <div class="cta" style="justify-content:flex-start;margin-top:24px">
       <a class="btn primary" href="https://github.com/shanemhamilton/baton#install">Install instructions</a>
       <a class="btn" href="https://github.com/shanemhamilton/baton/blob/main/skills/baton/SKILL.md">Read the skill</a>
@@ -283,8 +303,8 @@
     <p class="attr">
       Baton is a derivative of the <b>handoff</b> skill from
       <a href="https://github.com/dsifry/metaswarm">metaswarm</a> by <b>Dave Sifry</b> (MIT).
-      The structure, method, and template come from metaswarm; Baton adds Section 0, the SWARM
-      fan-out directive, the “latest, never pinned” rule, and a framework-agnostic generalization.
+      The structure, method, and template come from metaswarm; Baton adds Section 0's
+      orchestration contract, specialist/model routing, deployment waves, and a framework-agnostic generalization.
       Grateful thanks to Dave and the metaswarm project.
     </p>
     <div>
@@ -297,7 +317,21 @@
 </footer>
 
 <script>
-  // ----- install copy -----
+  // ----- platform-aware install copy -----
+  const INSTALLS={
+    claude:{label:'Claude Code',command:'mkdir -p ~/.claude/skills/baton && curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/baton/SKILL.md -o ~/.claude/skills/baton/SKILL.md'},
+    codex:{label:'Codex',command:'mkdir -p ~/.agents/skills/baton && curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/baton/SKILL.md -o ~/.agents/skills/baton/SKILL.md'}
+  };
+  function setInstallTarget(target){
+    const selected=INSTALLS[target];
+    document.getElementById('installcmd').textContent=selected.command;
+    document.getElementById('installbox').title='Install Baton globally for '+selected.label;
+    document.querySelectorAll('[data-install-target]').forEach(button=>{
+      const active=button.dataset.installTarget===target;
+      button.classList.toggle('on',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+  }
   function copyInstall(){
     const t=document.getElementById('installcmd').textContent;
     navigator.clipboard.writeText(t).then(()=>{
@@ -309,7 +343,7 @@
 
   // ----- anatomy rows -----
   const SECTIONS=[
-    ['0','Receiving Session Config','Model tier · SOLO/SWARM · subagents · review depth · fan-out directive',true],
+    ['0','Receiving Session Orchestration','$efficient-frontier main agent · specialist/model routing · waves · dispatch packets · review',true],
     ['1','Objective','What we\'re accomplishing, and why'],
     ['2','Definition of Done','Verifiable acceptance criteria'],
     ['3','Current Status','Done/verified · unverified · in-progress · not-started · working tree'],
@@ -331,7 +365,7 @@
     {name:'map-modules',  work:2.9},
     {name:'trace-callers',work:1.1},
     {name:'audit-safety', work:2.4},
-    {name:'draft-fix',    work:1.0},
+    {name:'cluster-fails',work:1.0},
   ];
   const SUM=AGENTS.reduce((a,b)=>a+b.work,0);   // 9.1
   const MAX=Math.max(...AGENTS.map(a=>a.work));  // 2.9
@@ -357,8 +391,8 @@
     document.getElementById('clockCmp').textContent=((m==='solo')?MAX:SUM).toFixed(1)+'s';
     document.getElementById('clockCmp').className='val lose';
     document.getElementById('demoNote').innerHTML=(m==='solo')
-      ? '<b>SOLO:</b> total time is the <b>sum</b> of every agent — '+SUM.toFixed(1)+'s. Now switch to SWARM and dispatch again.'
-      : '<b>SWARM:</b> all five launch at once — total time is the <b>slowest single agent</b>, '+MAX.toFixed(1)+'s. Same work, '+(SUM/MAX).toFixed(1)+'× faster.';
+      ? '<b>SOLO:</b> running these five independent lanes serially takes their <b>sum</b> — '+SUM.toFixed(1)+'s. Switch to SWARM to run the same safe batch together.'
+      : '<b>SWARM:</b> all five independent lanes launch at once — total time is the <b>slowest single lane</b>, '+MAX.toFixed(1)+'s. Same work, '+(SUM/MAX).toFixed(1)+'× faster.';
     buildLanes();
   }
   function dispatch(){
@@ -388,11 +422,12 @@
       if((now-start)<durMs){ rafId=requestAnimationFrame(tick); }
       else{
         wallEl.textContent=total.toFixed(1)+'s'; wallEl.className='val win';
-        btn.textContent='▶ Dispatch 5 agents'; btn.style.opacity=1; running=false;
+        btn.textContent='▶ Dispatch 5 safe lanes'; btn.style.opacity=1; running=false;
       }
     }
     rafId=requestAnimationFrame(tick);
   }
+  setInstallTarget('claude');
   setMode('solo');
 </script>
 </body>
