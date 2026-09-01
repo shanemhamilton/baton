@@ -16,6 +16,8 @@
     --baton:#ff8a3d; --gold:#ffd166;
     --solo:#7fb2ff; --swarm:#b48cff; --go:#4bd6c4;
     --maxw:1040px;
+    --motion-fast:160ms; --motion-ease:cubic-bezier(.65,0,.35,1);
+    --relay-duration:6.4s;
     --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   }
@@ -53,30 +55,79 @@
     text-transform:uppercase;color:var(--baton);border:1px solid var(--line);
     background:var(--surface);padding:6px 12px;border-radius:999px;margin-bottom:22px}
 
-  /* ---------- relay track hero animation ---------- */
-  .track{position:relative;height:78px;max-width:560px;margin:34px auto 6px;
-    border-top:2px dashed var(--line);border-bottom:2px dashed var(--line)}
-  .track .laneline{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line)}
-  .runner{position:absolute;top:50%;transform:translateY(-50%);font-size:30px;
-    filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
-  .r1{left:6%;animation:jog 2.6s ease-in-out infinite}
-  .r2{right:6%;animation:jog 2.6s ease-in-out infinite .3s}
-  .baton{position:absolute;top:50%;font-size:20px;
-    animation:pass 2.6s cubic-bezier(.5,0,.5,1) infinite}
-  @keyframes pass{
-    0%,8%{left:11%;transform:translateY(-50%) rotate(0deg);opacity:1}
-    46%,54%{left:50%;transform:translateY(-140%) rotate(180deg)}
-    92%,100%{left:87%;transform:translateY(-50%) rotate(360deg);opacity:1}
+  /* ---------- session relay hero animation ---------- */
+  .relay{--relay-travel:calc(50% - 58px);position:relative;height:112px;
+    max-width:560px;margin:30px auto 0;font-family:var(--mono)}
+  .relay-rail{position:absolute;left:15%;right:15%;top:44px;height:1px;background:var(--line)}
+  .relay-rail::after{content:"";position:absolute;inset:0;background:var(--baton);
+    transform:scaleX(0);transform-origin:left;animation:relay-line var(--relay-duration) var(--motion-ease) infinite}
+  .relay-endpoint{position:absolute;top:0;width:116px;text-align:center;color:var(--muted)}
+  .relay-current{left:0}.relay-next{right:0}
+  .endpoint-label{display:block;font-size:10px;letter-spacing:.1em;white-space:nowrap}
+  .endpoint-core{display:flex;align-items:center;justify-content:center;width:42px;height:42px;
+    margin:7px auto 0;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+    color:var(--text);font-size:16px;font-weight:700;letter-spacing:-.14em}
+  .endpoint-state{display:block;margin-top:6px;font-size:10px;color:#6f7b8c;white-space:nowrap}
+  .relay-current .endpoint-core{border-color:rgba(255,138,61,.56);color:var(--baton);
+    animation:relay-source var(--relay-duration) ease-in-out infinite}
+  .relay-next .endpoint-core{animation:relay-target var(--relay-duration) ease-in-out infinite}
+  .relay-next .endpoint-state{animation:relay-target-text var(--relay-duration) ease-in-out infinite}
+  .relay-packet{position:absolute;left:50%;top:44px;width:80px;height:37px;padding:7px 9px;
+    border:1px solid var(--gold);border-radius:7px;background:#241b13;color:var(--gold);
+    transform:translate(calc(-50% - var(--relay-travel)),-50%);opacity:0;
+    animation:relay-packet var(--relay-duration) var(--motion-ease) infinite}
+  .packet-name{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;line-height:1}
+  .packet-lines{display:flex;gap:3px;margin-top:6px}.packet-lines i{display:block;height:2px;background:currentColor;opacity:.72}
+  .packet-lines i:nth-child(1){width:22px}.packet-lines i:nth-child(2){width:14px}.packet-lines i:nth-child(3){width:8px}
+  .relay-receipt{display:block;margin-top:7px;color:var(--go);font-size:10px;
+    letter-spacing:.09em;opacity:0;transform:translateY(-4px);animation:relay-receipt var(--relay-duration) ease-out infinite}
+  .receipt-mark{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;
+    margin-right:3px;border:1px solid currentColor;border-radius:50%;font-size:9px;letter-spacing:0}
+  @keyframes relay-line{
+    0%,17%{transform:scaleX(0);opacity:0}
+    21%,63%{transform:scaleX(1);opacity:1}
+    82%,100%{transform:scaleX(1);opacity:.28}
   }
-  @keyframes jog{0%,100%{transform:translateY(-50%)}50%{transform:translateY(-62%)}}
+  @keyframes relay-source{
+    0%,10%{transform:scale(1);background:var(--surface)}
+    16%{transform:scale(1.08);background:#251a13}
+    24%,100%{transform:scale(1);background:var(--surface)}
+  }
+  @keyframes relay-target{
+    0%,57%{transform:scale(1);border-color:var(--line);color:var(--text)}
+    66%{transform:scale(1.08);border-color:var(--go);color:var(--go);background:#13201f}
+    82%,100%{transform:scale(1);border-color:rgba(75,214,196,.5);color:var(--go);background:var(--surface)}
+  }
+  @keyframes relay-target-text{
+    0%,61%{color:#6f7b8c}
+    70%,100%{color:var(--go)}
+  }
+  @keyframes relay-packet{
+    0%,12%{transform:translate(calc(-50% - var(--relay-travel)),-50%) rotate(-8deg);opacity:0}
+    16%{transform:translate(calc(-50% - var(--relay-travel)),-50%) rotate(-8deg);opacity:1}
+    43%{transform:translate(-50%,-62%) rotate(0deg);opacity:1}
+    65%,82%{transform:translate(calc(-50% + var(--relay-travel)),-50%) rotate(8deg);opacity:1}
+    91%,100%{transform:translate(calc(-50% + var(--relay-travel)),-50%) rotate(8deg);opacity:0}
+  }
+  @keyframes relay-receipt{
+    0%,66%{transform:translateY(-4px);opacity:0}
+    74%,89%{transform:translateY(0);opacity:1}
+    100%{transform:translateY(0);opacity:0}
+  }
+  @media(max-width:480px){
+    .relay{--relay-travel:calc(50% - 44px);height:105px;margin-top:26px}
+    .relay-rail{top:40px}.relay-endpoint{width:88px}.endpoint-label{font-size:8.5px}.endpoint-core{width:38px;height:38px}
+    .endpoint-state{font-size:8.5px}.relay-packet{width:70px;height:35px;padding:7px 8px}
+    .relay-packet{top:40px}
+    .relay-receipt{font-size:8.5px}
+  }
 
   .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
   .btn{font-family:var(--font);font-size:15px;font-weight:600;border-radius:10px;
     padding:12px 20px;cursor:pointer;border:1px solid var(--line);
-    background:var(--surface);color:var(--text);transition:.15s}
+    background:var(--surface);color:var(--text);transition:transform var(--motion-fast) var(--motion-ease)}
   .btn.primary{background:linear-gradient(100deg,var(--baton),#ff6f3d);border-color:transparent;color:#1a0f07}
-  .btn.primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
-  .btn:hover{border-color:var(--baton)}
+  .btn:not(:disabled):hover{transform:translateY(-1px);border-color:var(--baton)}
 
   /* ---------- install strip ---------- */
   .install{max-width:780px;margin:26px auto 0;display:grid;
@@ -85,13 +136,16 @@
   .install-targets{display:flex;gap:4px;padding:5px;border-right:1px solid var(--line);
     background:var(--surface)}
   .install-targets button{border:0;border-radius:7px;background:transparent;color:var(--muted);
-    padding:8px 11px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:12px}
+    padding:8px 11px;cursor:pointer;font-family:var(--font);font-weight:700;font-size:12px;
+    transition:opacity var(--motion-fast) var(--motion-ease)}
+  .install-targets button:not(.on):hover{color:var(--text);opacity:.84}
   .install-targets button.on{background:var(--baton);color:#1a0f07}
   .install code{font-family:var(--mono);font-size:13px;color:#cdd6e4;min-width:0;
     padding:14px 16px;text-align:left;overflow-x:auto;white-space:nowrap}
   .install-copy{border:0;border-left:1px solid var(--line);background:var(--surface2);
-    color:var(--text);padding:0 18px;cursor:pointer;font-weight:600;font-size:13px}
-  .install-copy:hover{background:var(--baton);color:#1a0f07}
+    color:var(--text);padding:0 18px;cursor:pointer;font-weight:600;font-size:13px;
+    transition:opacity var(--motion-fast) var(--motion-ease)}
+  .install-copy:hover{background:var(--baton);color:#1a0f07;opacity:.92}
   @media(max-width:720px){
     .install{grid-template-columns:minmax(0,1fr) auto}
     .install-targets{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--line)}
@@ -110,9 +164,12 @@
   .demo-controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
   .toggle{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#0b0e13}
   .toggle button{border:0;background:transparent;color:var(--muted);font-weight:600;
-    padding:9px 18px;cursor:pointer;font-size:14px;font-family:var(--font)}
+    padding:9px 18px;cursor:pointer;font-size:14px;font-family:var(--font);
+    transition:opacity var(--motion-fast) var(--motion-ease)}
+  .toggle button:not(.on):hover{color:var(--text);opacity:.84}
   .toggle button.on[data-mode="solo"]{background:var(--solo);color:#08131f}
   .toggle button.on[data-mode="swarm"]{background:var(--swarm);color:#140a24}
+  button:disabled{cursor:not-allowed;opacity:.58}
   .demo-controls .go{margin-left:auto}
   .clocks{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:18px}
   .clock{min-width:150px}
@@ -126,11 +183,12 @@
   .lane .name{font-family:var(--mono);font-size:13px;color:var(--muted);white-space:nowrap}
   .bartrack{position:relative;height:22px;background:#0b0e13;border:1px solid var(--line);
     border-radius:6px;overflow:hidden}
-  .bar{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px 0 0 5px}
+  .bar{position:absolute;inset:0;border-radius:5px 0 0 5px;transform:scaleX(0);transform-origin:left;
+    transition:transform var(--work-duration,var(--motion-fast)) linear}
   .bar.solo{background:linear-gradient(90deg,#3a6bb0,var(--solo))}
   .bar.swarm{background:linear-gradient(90deg,#6d4fb0,var(--swarm))}
   .lane .dur{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
-  .lane .tick{opacity:0;transition:opacity .2s;color:var(--go)}
+  .lane .tick{opacity:0;transition:opacity var(--motion-fast) var(--motion-ease);color:var(--go)}
   .lane.done .tick{opacity:1}
   .demo-note{margin-top:18px;font-size:14px;color:var(--muted)}
   .demo-note b{color:var(--text)}
@@ -168,6 +226,14 @@
     html{scroll-behavior:auto}
     *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
       transition-duration:.01ms!important}
+    .relay *, .relay::before, .relay::after{animation:none!important;transition:none!important}
+    .relay-rail::after{transform:scaleX(1);opacity:1}
+    .relay-current .endpoint-core{transform:scale(1);background:var(--surface)}
+    .relay-next .endpoint-core{transform:scale(1);border-color:rgba(75,214,196,.5);color:var(--go);background:var(--surface)}
+    .relay-next .endpoint-state{color:var(--go)}
+    .relay-packet{transform:translate(calc(-50% + var(--relay-travel)),-50%) rotate(8deg);opacity:1}
+    .relay-receipt{transform:translateY(0);opacity:1}
+    .btn,.toggle button,.install-targets button,.install-copy,.bar,.lane .tick{transition:none!important}
   }
 </style>
 </head>
@@ -186,11 +252,23 @@
     <h1>Pass the <span class="grad">baton</span>,<br/>cleanly.</h1>
     <p class="tag">One self-contained, evidence-backed entrypoint so a fresh session resumes <b>without the prior chat or lost momentum</b> — with the right tools already queued.</p>
 
-    <div class="track" aria-hidden="true">
-      <div class="laneline"></div>
-      <span class="runner r1">🏃‍♂️</span>
-      <span class="baton">🥢</span>
-      <span class="runner r2">🏃</span>
+    <div class="relay" aria-hidden="true">
+      <div class="relay-rail"></div>
+      <div class="relay-endpoint relay-current">
+        <span class="endpoint-label">CURRENT SESSION</span>
+        <span class="endpoint-core">▸_</span>
+        <span class="endpoint-state">context live</span>
+      </div>
+      <div class="relay-packet">
+        <span class="packet-name">EVIDENCE</span>
+        <span class="packet-lines"><i></i><i></i><i></i></span>
+      </div>
+      <div class="relay-endpoint relay-next">
+        <span class="endpoint-label">NEXT SESSION</span>
+        <span class="endpoint-core">▸_</span>
+        <span class="endpoint-state">ready to resume</span>
+        <span class="relay-receipt"><span class="receipt-mark">✓</span>RECEIVED</span>
+      </div>
     </div>
 
     <div class="cta">
@@ -218,9 +296,9 @@
 
     <div class="demo">
       <div class="demo-controls">
-        <div class="toggle" role="tablist" aria-label="dispatch mode">
-          <button data-mode="solo" class="on" onclick="setMode('solo')">DIRECT · focused</button>
-          <button data-mode="swarm" onclick="setMode('swarm')">LEAN · parallel</button>
+        <div class="toggle" role="group" aria-label="Dispatch mode">
+          <button type="button" data-mode="solo" class="on" aria-pressed="true" onclick="setMode('solo')">DIRECT · focused</button>
+          <button type="button" data-mode="swarm" aria-pressed="false" onclick="setMode('swarm')">LEAN · parallel</button>
         </div>
         <button class="btn primary go" id="dispatchbtn" onclick="dispatch()">▶ Run 5 evidence checks</button>
       </div>
@@ -380,7 +458,8 @@
   const SUM=AGENTS.reduce((a,b)=>a+b.work,0);   // 9.1
   const MAX=Math.max(...AGENTS.map(a=>a.work));  // 2.9
   const SCALE=620;      // ms of animation per "work-second"
-  let mode='solo', running=false, rafId=null;
+  const reduceMotionQuery=window.matchMedia('(prefers-reduced-motion: reduce)');
+  let mode='solo', running=false, rafId=null, runTimeoutIds=[];
 
   function buildLanes(){
     document.getElementById('lanes').innerHTML=AGENTS.map((a,i)=>
@@ -393,7 +472,11 @@
   function setMode(m){
     if(running) return;
     mode=m;
-    document.querySelectorAll('.toggle button').forEach(b=>b.classList.toggle('on',b.dataset.mode===m));
+    document.querySelectorAll('[data-mode]').forEach(button=>{
+      const active=button.dataset.mode===m;
+      button.classList.toggle('on',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
     const wall=(m==='solo')?SUM:MAX;
     document.getElementById('clockWall').textContent='0.0s';
     document.getElementById('clockWall').className='val';
@@ -405,38 +488,76 @@
       : '<b>LEAN:</b> a small native worker set runs five bounded checks together — total time is the <b>slowest check</b>, '+MAX.toFixed(1)+'s. No persistent orchestration framework needed.';
     buildLanes();
   }
+  function clearDemoRun(){
+    if(rafId!==null){cancelAnimationFrame(rafId);rafId=null;}
+    runTimeoutIds.forEach(clearTimeout);
+    runTimeoutIds=[];
+  }
+  function setRunning(isRunning){
+    running=isRunning;
+    const button=document.getElementById('dispatchbtn');
+    button.disabled=isRunning;
+    button.textContent=isRunning?'● running…':'▶ Run 5 evidence checks';
+    document.querySelectorAll('[data-mode]').forEach(modeButton=>modeButton.disabled=isRunning);
+  }
+  function scheduleDemo(callback,delay){
+    const timeoutId=setTimeout(()=>{
+      runTimeoutIds=runTimeoutIds.filter(id=>id!==timeoutId);
+      callback();
+    },delay);
+    runTimeoutIds.push(timeoutId);
+  }
+  function finishDemo(){
+    clearDemoRun();
+    document.querySelectorAll('.bar').forEach(bar=>{
+      bar.style.transition='none';
+      bar.style.transform='scaleX(1)';
+    });
+    document.querySelectorAll('.lane').forEach(lane=>lane.classList.add('done'));
+    const total=(mode==='solo')?SUM:MAX;
+    const wallEl=document.getElementById('clockWall');
+    wallEl.textContent=total.toFixed(1)+'s';
+    wallEl.className='val win';
+    setRunning(false);
+  }
   function dispatch(){
-    if(running) return; running=true;
-    const btn=document.getElementById('dispatchbtn'); btn.textContent='● running…'; btn.style.opacity=.7;
+    if(running) return;
     buildLanes();
     const total=(mode==='solo')?SUM:MAX;
-    // schedule each bar
-    AGENTS.forEach((a,i)=>{
-      const bar=document.getElementById('bar'+i);
-      const delay=(mode==='solo')? AGENTS.slice(0,i).reduce((x,y)=>x+y.work,0) : 0;
-      bar.style.transition='none'; bar.style.width='0%';
-      requestAnimationFrame(()=>{
-        setTimeout(()=>{
-          bar.style.transition='width '+(a.work*SCALE)+'ms linear';
-          bar.style.width='100%';
-        }, delay*SCALE);
-      });
-      setTimeout(()=>document.getElementById('lane'+i).classList.add('done'),(delay+a.work)*SCALE);
+    setRunning(true);
+    if(reduceMotionQuery.matches){finishDemo();return;}
+    document.querySelectorAll('.bar').forEach(bar=>{
+      bar.style.transition='none';
+      bar.style.transform='scaleX(0)';
     });
-    // live clock
-    const start=performance.now(), durMs=total*SCALE;
-    const wallEl=document.getElementById('clockWall');
-    function tick(now){
-      const el=Math.min((now-start)/SCALE, total);
-      wallEl.textContent=el.toFixed(1)+'s';
-      if((now-start)<durMs){ rafId=requestAnimationFrame(tick); }
-      else{
-        wallEl.textContent=total.toFixed(1)+'s'; wallEl.className='val win';
-        btn.textContent='▶ Run 5 evidence checks'; btn.style.opacity=1; running=false;
+    rafId=requestAnimationFrame(()=>{
+      if(reduceMotionQuery.matches){finishDemo();return;}
+      const start=performance.now(),durMs=total*SCALE;
+      const wallEl=document.getElementById('clockWall');
+      AGENTS.forEach((a,i)=>{
+        const bar=document.getElementById('bar'+i);
+        const delay=(mode==='solo')?AGENTS.slice(0,i).reduce((x,y)=>x+y.work,0):0;
+        bar.style.setProperty('--work-duration',(a.work*SCALE)+'ms');
+        scheduleDemo(()=>{
+          bar.style.transition='';
+          bar.style.transform='scaleX(1)';
+        },delay*SCALE);
+        scheduleDemo(()=>document.getElementById('lane'+i).classList.add('done'),(delay+a.work)*SCALE);
+      });
+      function tick(now){
+        const elapsed=Math.min((now-start)/SCALE,total);
+        wallEl.textContent=elapsed.toFixed(1)+'s';
+        if((now-start)<durMs){rafId=requestAnimationFrame(tick);}
+        else{finishDemo();}
       }
-    }
-    rafId=requestAnimationFrame(tick);
+      rafId=requestAnimationFrame(tick);
+    });
   }
+  const handleMotionChange=event=>{
+    if(event.matches&&running){finishDemo();}
+  };
+  if(reduceMotionQuery.addEventListener){reduceMotionQuery.addEventListener('change',handleMotionChange);}
+  else{reduceMotionQuery.addListener(handleMotionChange);}
   setInstallTarget('claude');
   setMode('solo');
 </script>
