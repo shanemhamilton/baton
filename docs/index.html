@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Baton — pass the baton, cleanly</title>
-<meta name="description" content="Baton is a portable AI session-handoff skill: it surfaces high-leverage human decisions, selects the lightest adequate execution shape, and launches a long, adversarially checked one-shot continuation." />
+<meta name="description" content="Baton is a portable Claude and Codex session-handoff skill that preserves complete progress, ranks installed and installable MCP capabilities, and resumes without lost momentum." />
 <meta name="theme-color" content="#0e1116" />
 <meta property="og:title" content="Baton — pass the baton, cleanly" />
-<meta property="og:description" content="Portable Codex and Claude handoffs with a human leverage gate, right-sized execution, adversarial evidence checks, and long one-shot momentum." />
+<meta property="og:description" content="Portable Codex and Claude handoffs with complete continuity, ranked MCP discovery and install recommendations, capable-model orchestration, and one-shot momentum." />
 <meta property="og:type" content="website" />
 <style>
   :root{
@@ -184,7 +184,7 @@
   <div class="wrap">
     <span class="kicker">AI session handoff · MIT · framework-agnostic</span>
     <h1>Pass the <span class="grad">baton</span>,<br/>cleanly.</h1>
-    <p class="tag">One self-contained, evidence-backed entrypoint so a fresh session resumes <b>without the prior chat</b> — and keeps making safe progress.</p>
+    <p class="tag">One self-contained, evidence-backed entrypoint so a fresh session resumes <b>without the prior chat or lost momentum</b> — with the right tools already queued.</p>
 
     <div class="track" aria-hidden="true">
       <div class="laneline"></div>
@@ -213,8 +213,8 @@
 <section id="demo">
   <div class="wrap">
     <div class="eyebrow">The core idea, running</div>
-    <h2>Use only as much machinery as the work earns.</h2>
-    <p class="lead">This example has five independent evidence checks that a small native worker set can group safely, so lightweight delegation earns its keep. Tightly coupled work stays direct; Metaswarm is reserved for persistent coordination or governance needs that simpler shapes cannot manage.</p>
+    <h2>Spend the strongest model on judgment.</h2>
+    <p class="lead">This example has five independent evidence checks, so a capable main model orchestrates a small native worker set and keeps its context for synthesis and review. Tiny or inseparable work stays direct; Metaswarm is reserved for persistent coordination or governance needs that simpler shapes cannot manage.</p>
 
     <div class="demo">
       <div class="demo-controls">
@@ -250,14 +250,16 @@
   <div class="wrap">
     <div class="eyebrow">What makes Baton different</div>
     <h2>Section 0: the next session's contract.</h2>
-    <p class="lead">Most handoffs say <i>what to do next</i>. Baton first surfaces any human-owned choice that would materially improve the next session, then defines the longest safe execution horizon, chooses the lightest adequate mechanism, and installs an adversarial evidence spine.</p>
+    <p class="lead">Most handoffs say <i>what to do next</i>. Baton preserves everything material and the exact stopping point, surfaces any high-leverage human choice, queues the best verified runtime capabilities, and launches the longest safe execution horizon with an adversarial evidence spine.</p>
 
     <div class="grid2">
       <div class="card">
         <h3>The rules it encodes</h3>
         <p style="color:var(--muted);margin:10px 0 0">
-          <b style="color:var(--text)">Human leverage</b> — pause before finalization for the few human-owned choices that materially change the runway; offer a recommendation, an option-preserving defer path, and repeat until clear.<br/><br/>
-          <b style="color:var(--text)">Right-sized execution and detail</b> — choose DIRECT, LEAN, STRUCTURED, or METASWARM, then keep the handoff compact, standard, or governed as the evidence actually requires.<br/><br/>
+          <b style="color:var(--text)">Complete continuity</b> — preserve every important result, decision, active lane, recovery state, exact stop point, next move, and do-not-redo boundary.<br/><br/>
+          <b style="color:var(--text)">Ranked capability activation</b> — inspect each receiving Claude or Codex runtime, rank installed and installable paths, prefer authoritative MCP, and queue each real capability with its first use and fallback.<br/><br/>
+          <b style="color:var(--text)">Better-tool installation</b> — research provider-primary and runtime-catalog options before accepting manual work; ask the human to connect the optimal missing option or explicitly defer.<br/><br/>
+          <b style="color:var(--text)">Efficient orchestration</b> — keep capable main models on planning, synthesis, integration, and review while bounded workers execute research, mechanical coding, and tests.<br/><br/>
           <b style="color:var(--text)">Adversarial truth</b> — classify load-bearing claims, hunt contradictions, use a fresh challenger, and rerun decisive checks.<br/><br/>
           <b style="color:var(--text)">One-shot momentum</b> — establish a runnable walking skeleton when new structure is needed, then keep expanding and verifying until done or a real hard stop.
         </p>
@@ -266,8 +268,11 @@
 <span class="c">## 0. Receiving Session Contract</span>
 <span class="k">- Shape:</span> <span class="s">LEAN</span> native delegation
 <span class="k">- Depth:</span> standard, outcome-level
+<span class="k">- Activate:</span> ranked MCP source · efficient-frontier · ponytail
+<span class="k">- Install:</span> optimal missing connector / human defer
 <span class="k">- Human input:</span> cleared / answered / deferred
 <span class="k">- Why:</span> 3 independent evidence checks
+<span class="k">- Resume:</span> exact stop point; do not repeat discovery
 <span class="k">- Horizon:</span> walking skeleton → vertical slices
 <span class="k">- Review:</span> fresh falsification challenger
 <span class="k">- Boot:</span> refresh repo, tracker, locks, runtime
@@ -307,7 +312,7 @@
       Baton is a derivative of the <b>handoff</b> skill from
       <a href="https://github.com/dsifry/metaswarm">metaswarm</a> by <b>Dave Sifry</b> (MIT).
       The self-contained handoff structure and exact launch sentence come from metaswarm; Baton adds
-      a human leverage gate, right-sized execution selection, adversarial evidence checks, long one-shot missions, and walking-skeleton guidance.
+      a human leverage gate, comprehensive momentum preservation, MCP and capability activation planning, efficient capable-model orchestration, adversarial evidence checks, long one-shot missions, and walking-skeleton guidance.
       Grateful thanks to Dave and the metaswarm project.
     </p>
     <div>
@@ -346,10 +351,10 @@
 
   // ----- anatomy rows -----
   const SECTIONS=[
-    ['0','Receiving Session Contract','human-decision state · right-sized execution · one-shot horizon · boot checks · review tier · hard stops',true],
+    ['0','Receiving Session Contract','ranked capability/MCP activation · install decision · continuity boundary · efficient execution · hard stops',true],
     ['1','Objective','What we\'re accomplishing, and why'],
     ['2','Definition of Done','Verifiable acceptance criteria'],
-    ['3','Current Status','Done/verified · unverified · in-progress · not-started · working tree'],
+    ['3','Current Status','Done/verified · unverified · in-progress · do-not-redo · active work · not-started · working tree'],
     ['4','Truth Ledger & Required Reading','Evidence classes, volatile refreshes, paths, and what to inspect'],
     ['5','Key Decisions','Settled or deferred choices, rationale, and revisit triggers'],
     ['6','Architecture / Walking Skeleton','Existing boundaries, first structural proof, and value-ordered expansion'],
