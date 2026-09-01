@@ -36,6 +36,9 @@ Baton's additions over the original:
   - A right-sizing ladder that prefers capable-model orchestration for bounded
     delegable work, while retaining direct execution for tiny or tightly
     coupled work and Metaswarm for justified persistent coordination.
+  - A mandatory least-sufficient model matrix that routes deterministic
+    legwork to fast/economy models, bounded coding and analysis to balanced
+    workhorses, and frontier models only to documented judgment-bearing work.
   - Compact, standard, and governed handoff depths so evidence remains
     proportional and narrow work does not inherit orchestration theater.
   - An evidence-led adversarial spine: classified claims, contradiction-seeking,

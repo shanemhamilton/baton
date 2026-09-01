@@ -10,7 +10,8 @@ Most handoffs answer *what to do next*. Baton also preserves **exactly where use
 - **No momentum loss** — the receiving session gets the exact stopping point, next concrete move, active/background work, and a do-not-redo boundary so it refreshes volatile facts and resumes instead of restarting the investigation.
 - **Ranked capability and MCP activation** — Baton independently inspects the receiving Claude or Codex runtime, ranks installed and installable paths from authoritative structured connectors through manual fallbacks, and queues each consequential capability with its first use and fallback.
 - **Better-tool installation gate** — before accepting CLI, browser, pasted-data, or custom-glue work, Baton researches current provider-primary and runtime-catalog options. If the optimal relevant connector is missing, it recommends the exact Claude/Codex install path and asks the human to connect it or explicitly defer to the documented fallback.
-- **Capable-model orchestration** — when work has bounded delegable lanes, the strongest main model stays on planning, architecture, synthesis, integration, and final review while workers handle token-heavy research, mechanical coding, and tests. Baton explicitly evaluates `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific installed skills.
+- **Least-sufficient model assignment** — every nontrivial lane gets a mandatory model route: FAST/economy for deterministic legwork such as Haiku-class workers, BALANCED/workhorse for bounded coding and analysis such as Sonnet-class workers, and FRONTIER only for judgment-bearing work with a written lower-tier insufficiency case.
+- **Capable-model orchestration** — the strongest main model stays on planning, architecture, synthesis, integration, and final review while efficient workers handle search, inventory, extraction, logs, mechanical coding, and tests. A direct execution shape must still use the lowest sufficient model tier. Baton explicitly evaluates `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific installed skills.
 - **Right-sized execution and detail** — the handoff author chooses the most efficient adequate `DIRECT`, `LEAN`, `STRUCTURED`, or `METASWARM` shape from dependency, collision, risk, coordination overhead, and main-model opportunity cost, then chooses compact, standard, or governed document depth.
 - **Human leverage gate** — when one to three unresolved human-owned choices would materially improve the next session, Baton pauses before finalization with practical options, a recommended default, and an explicit defer path. It repeats the gate until clear and does not stop for facts or technical questions the agent can resolve safely.
 - **Adversarial evidence** — live-state claims carry evidence, a falsification pass hunts contradictions, and a fresh challenger reviews every nontrivial handoff when the runtime supports it. Review rigor scales independently from orchestration weight.
@@ -74,13 +75,14 @@ Or say “hand this off” / “I'm running low on context, write a handoff.” 
 3. Pause if one to three human-owned decisions would materially change the outcome or useful one-shot horizon; the human can answer, give feedback, or explicitly defer to an option-preserving boundary. Re-run the gate until clear; otherwise continue without interruption.
 4. Discover and rank relevant installed and installable skills, plugins, tools, workers, apps, and MCP connectors in the receiving Claude or Codex runtime.
 5. Research provider-primary and runtime-catalog options before accepting a lower-efficiency path; ask the human to install/connect the optimal relevant missing option or explicitly defer to a fallback.
-6. Prefer capable-model orchestration for delegable work, explicitly evaluating `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific installed skills.
-7. Choose the most efficient adequate execution shape and explain what would justify changing it at startup.
-8. Choose compact, standard, or governed document depth so narrow work does not inherit orchestration or evidence theater.
-9. Define a long one-shot continuation mission, including a walking skeleton first when the work needs new structure.
-10. Run a contradiction-seeking pass and right-sized fresh independent challenge.
-11. Write `docs/handoffs/handoff-<timestamp>.md`.
-12. Emit the single `Read <file> and do ...` sentence to paste into the next session.
+6. Assign every execution lane to its lowest sufficient model tier: Haiku-class/fast for deterministic legwork, Sonnet-class/balanced for bounded coding and analysis, and frontier only with a written lower-tier insufficiency case.
+7. Prefer capable-model orchestration for delegable work, explicitly evaluating `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific installed skills.
+8. Choose the most efficient adequate execution shape and explain what would justify changing it at startup.
+9. Choose compact, standard, or governed document depth so narrow work does not inherit orchestration or evidence theater.
+10. Define a long one-shot continuation mission, including a walking skeleton first when the work needs new structure.
+11. Run a contradiction-seeking pass and right-sized fresh independent challenge.
+12. Write `docs/handoffs/handoff-<timestamp>.md`.
+13. Emit the single `Read <file> and do ...` sentence to paste into the next session.
 
 ---
 
@@ -90,7 +92,7 @@ Narrow, low-uncertainty work uses a compact six-section variant. Standard and go
 
 | Section | Purpose |
 |---|---|
-| **0. Receiving Session Contract** | Ranked capability/MCP activation · missing-tool install decision · human-decision state · efficient execution · continuity boundary · one-shot horizon · hard stops |
+| **0. Receiving Session Contract** | Ranked capability/MCP activation · model-assignment matrix · missing-tool install decision · efficient execution · continuity boundary · one-shot horizon · hard stops |
 | 1. Objective | What we're accomplishing and why |
 | 2. Definition of Done | Verifiable acceptance criteria |
 | 3. Current Status | Done/verified · done/unverified · in-progress · do-not-redo boundary · active/background work · not-started · working tree |
@@ -106,7 +108,7 @@ Narrow, low-uncertainty work uses a compact six-section variant. Standard and go
 
 ## Attribution
 
-Baton is a derivative of the **handoff** skill from [**metaswarm**](https://github.com/dsifry/metaswarm) by **Dave Sifry** (MIT License). The core self-contained handoff structure and exact closing-sentence contract come from metaswarm; Baton adds a pre-finalization human leverage gate with explicit defer semantics, comprehensive momentum preservation, capability and MCP activation planning, efficient capable-model orchestration, an evidence-led adversarial review spine, a long one-shot continuation mission, and architecture/walking-skeleton-first guidance for substantial product work. Metaswarm remains a supported choice when its coordination and governance machinery is justified. Full detail in [`NOTICE`](./NOTICE). Grateful thanks to Dave and the metaswarm project.
+Baton is a derivative of the **handoff** skill from [**metaswarm**](https://github.com/dsifry/metaswarm) by **Dave Sifry** (MIT License). The core self-contained handoff structure and exact closing-sentence contract come from metaswarm; Baton adds a pre-finalization human leverage gate with explicit defer semantics, comprehensive momentum preservation, capability and MCP activation planning, mandatory least-sufficient model assignment, efficient capable-model orchestration, an evidence-led adversarial review spine, a long one-shot continuation mission, and architecture/walking-skeleton-first guidance for substantial product work. Metaswarm remains a supported choice when its coordination and governance machinery is justified. Full detail in [`NOTICE`](./NOTICE). Grateful thanks to Dave and the metaswarm project.
 
 ## License
 

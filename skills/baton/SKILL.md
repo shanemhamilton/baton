@@ -1,6 +1,6 @@
 ---
 name: baton
-description: Pass the baton by writing one self-contained, evidence-backed operational entrypoint that preserves every important result, decision, work-in-progress boundary, and next move for a fresh session, then end with one exact "Read XXX.md and do YYY." sentence. Before finalizing, refresh live truth, surface material human-owned decisions, rank the receiving Claude or Codex runtime's installed and installable skills, plugins, tools, subagents, and MCP connectors, ask the human to connect a superior missing option, and queue an explicit activation plan. Prefer authoritative MCP paths and capable-model orchestration, including efficient-frontier and ponytail when available and applicable, while preserving scope and approval gates. Use when ending or compacting a session, switching machines or sessions, wrapping up, or when the user asks to hand off, resume later, or continue in a new session. Harness- and project-agnostic.
+description: Write one self-contained, evidence-backed handoff that preserves every important result, decision, work-in-progress boundary, and next move, then end with one exact "Read XXX.md and do YYY." sentence. Refresh live truth; surface human-owned decisions; rank the receiving Claude or Codex runtime's skills, plugins, tools, subagents, MCP connectors, and model routes; recommend superior missing options; and queue exact activation and task-to-model plans. Prefer authoritative MCP and capable-model orchestration through efficient-frontier, ponytail, and applicable specialists. Assign every task to the least expensive and fastest reliable model tier; never spend a frontier model on legwork Haiku, Sonnet, or an equivalent efficient route can own. Use when ending or compacting a session, switching machines or sessions, wrapping up, or handing work to a fresh session. Harness- and project-agnostic; preserve all scope and approval gates.
 ---
 
 # Baton — Handoff Skill
@@ -19,7 +19,7 @@ Treat the handoff as an evidence-backed launchpad, not a frozen transcript or an
 2. **Leave no important work behind.** Sweep the full session, working state, delegated work, and relevant external systems. Capture every material completed result, unverified result, work in progress, pending change, decision and rationale, failed approach worth not repeating, artifact, blocker, and remaining obligation. Summarize operationally; do not dump the transcript.
 3. **Preserve momentum exactly.** Record the exact stopping point, safest next concrete move, active processes or actors, dirty/recovery state, and what must not be rediscovered or redone. The receiving session refreshes volatile facts, then continues from that boundary instead of restarting the investigation or re-litigating settled decisions.
 4. **Discover, rank, and queue the best capabilities.** Inspect the actual Claude, Codex, or other receiving runtime for relevant skills, plugins, tools, subagents, apps, and connectors instead of relying only on project settings or remembered inventories. Rank usable and installable paths by end-to-end efficiency, task coverage, provenance, reliability, permissions, auditability, and context overhead. Prefer an available, authenticated, authoritative MCP connector for the system it exposes. If the best relevant option is not installed or connected, research current availability and ask the human to install or authorize it; if deferred, preserve the best verified fallback. Queue exact startup use and fallbacks in the handoff, with special attention to `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and any more specific efficiency or domain skill that is available and applicable.
-5. **Use capable models as orchestrators.** When the main or receiving model has materially stronger planning and synthesis capability and the work has bounded delegable lanes, keep it on architecture, prioritization, ambiguity, integration, and final review; route research, inventory, mechanical coding, and test execution through appropriate workers. Direct coding remains correct for tiny or tightly coupled work where delegation would fragment context or add more overhead than it saves.
+5. **Right-size every model assignment.** Assign each task or lane to the least expensive, fastest available model tier that can complete it reliably. Keep frontier models on architecture, prioritization, ambiguity, consequential risk, integration, synthesis, and final review. Never use a frontier model for search, inventory, extraction, summarization, log reduction, test execution, formatting, or bounded mechanical coding that an efficient route such as Claude Haiku/Sonnet or the equivalent Codex fast/balanced tier can perform. Every frontier execution assignment requires a written exception explaining why a lower tier is insufficient.
 6. **Choose the most efficient adequate execution shape.** Account for coordination overhead, main-model opportunity cost, dependency structure, risk, and available native mechanisms. Do not default to maximum fan-out or heavy framework state merely because it is installed.
 7. **Keep an adversarial spine.** Use evidence checks, contradiction-seeking, and fresh independent challenge in proportion to risk. Never treat an agent's confidence as proof.
 8. **Surface high-leverage human decisions before finalizing.** If a small number of human-owned choices would materially change the outcome, design, risk posture, or useful execution horizon, pause with concise options, a recommendation, and an explicit defer path. Do not ask the human to decide facts or reversible engineering details the agent can resolve.
@@ -143,18 +143,31 @@ Use an available, authenticated MCP connector as the default path to the externa
 
 Build a **capability activation plan** for the receiving session. For each consequential capability, record its rank, verified name and source, installed/authenticated state in the receiving harness, what it will do, the first milestone that uses it, the exact invocation or selection mechanism when known, and a graceful fallback. Explicitly evaluate `$efficient-frontier` for capable-model orchestration, `$ponytail` or `ponytail:ponytail` for the smallest correct implementation, and any more specific installed skill or connector that improves the mission. Queue them when applicable; do not list them decoratively. The receiver must activate the queued skills before task work and use each planned connector at its first relevant operation unless boot-time evidence invalidates it, in which case it records the substitution and continues.
 
-The handoff author must then choose and justify the **most efficient shape that can reliably complete the execution horizon**. When a high-capability main model can delegate independent bounded lanes, prefer `LEAN` or `STRUCTURED`: reserve its context for planning, architecture, synthesis, integration, and final review while appropriate workers perform token-heavy research, inventory, mechanical coding, and test execution. Use `DIRECT` when the mission is genuinely tiny, inseparable, or faster and safer in one context. The receiving agent validates availability and live assumptions at boot; it changes shape only when live evidence invalidates the choice, and records why.
+Run the **Model Efficiency Gate** before selecting the execution shape:
+
+1. Discover the model routes the receiving Claude, Codex, or other harness actually exposes. Treat exact model IDs, prices, and availability as volatile; resolve them at handoff creation when possible and require a boot-time refresh.
+2. Classify every execution lane by the lowest capability tier that can meet its accuracy, context, tool-use, and risk requirements:
+   - **FAST / ECONOMY** — deterministic or easily checked legwork: repository and web search, inventory, document extraction, classification, formatting, test execution, log reduction, and simple low-risk transformations. Prefer the current Claude Haiku-class or Codex fast/economy route.
+   - **BALANCED / WORKHORSE** — bounded implementation, refactors, debugging from a known reproduction, focused analysis, test repair, and ordinary review. Prefer the current Claude Sonnet-class or Codex balanced coding route.
+   - **FRONTIER / JUDGMENT** — architecture, genuinely ambiguous planning, consequential security/money/privacy decisions, cross-lane conflict resolution, integration, synthesis, and final adversarial review. Use the strongest available model only for these judgment-bearing parts.
+3. Assign a concrete tier and available model route to every lane. The frontier orchestrator owns decomposition, dependencies, acceptance criteria, integration, and review; efficient workers own the execution legwork.
+4. For every `FRONTIER` execution assignment, record **why FAST and BALANCED are insufficient**. If that field is empty or only says “quality,” down-route the lane. Existing use of a frontier main session is not itself justification.
+5. Escalate one tier only after concrete evidence shows the assigned tier is insufficient: a failed stop condition, missing capability, repeated incorrect output, or unresolved ambiguity. Do not jump from FAST to FRONTIER, and do not silently promote work because a preferred lower-tier model is unavailable; select an equivalent route or record the constraint.
+
+This gate is mandatory for every nontrivial handoff. If the harness cannot select or delegate to lower-cost models, record that limitation and the desired route so the human or receiving environment can enable it. Do not disguise unavailable routing as an efficiency decision.
+
+The handoff author must then choose and justify the **most efficient shape that can reliably complete the execution horizon**. When a high-capability main model can delegate independent bounded lanes, prefer `LEAN` or `STRUCTURED`: reserve its context for planning, architecture, synthesis, integration, and final review while appropriate workers perform token-heavy research, inventory, mechanical coding, and test execution. Use `DIRECT` when the mission is genuinely tiny, inseparable, or faster and safer in one context, but run that direct context on the lowest sufficient model tier. A DIRECT shape is never a frontier-legwork exception. The receiving agent validates availability and live assumptions at boot; it changes shape only when live evidence invalidates the choice, and records why.
 
 | Shape | Select when | Minimum safety mechanism |
 |---|---|---|
-| **DIRECT** | Work is tiny, tightly coupled, immediate-blocker-bound, or demonstrably fastest and safest in one context. | Deterministic checks plus a separate contradiction pass; use a fresh read-only challenger when the task is nontrivial and one is available. |
+| **DIRECT** | Work is tiny, tightly coupled, immediate-blocker-bound, or demonstrably fastest and safest in one context running the lowest sufficient model tier. | Deterministic checks plus a separate contradiction pass; use a fresh read-only challenger when the task is nontrivial and one is available. |
 | **LEAN** | A capable main model plus roughly 1–3 independent native workers/reviewers improves speed, cost, or quality without persistent orchestration state. This is the normal choice for delegable nontrivial work. | Disjoint ownership, compact evidence returns, central integration, and one fresh independent review. |
 | **STRUCTURED** | Several dependent phases, cross-cutting architecture, or multiple review waves benefit from an existing plan/orchestration skill and a capable central orchestrator, but full swarm machinery is unnecessary. | Explicit dependencies, single-writer boundaries, milestone gates, central synthesis, and fresh review at integration points. |
 | **METASWARM** | Sustained parallel workstreams, multiple writers, formal governance gates, locks/ownership, or durable cross-session coordination make its setup and state machinery materially safer or faster than the lighter shapes. | Follow its verified project setup and native gates; retain central evidence checks and user authority. |
 
 Choose execution shape and review tier independently. A narrow security repair may be `DIRECT` with high-risk review; a broad low-risk scaffold may be `STRUCTURED` with medium-risk review. Complexity determines coordination weight. Consequence and uncertainty determine adversarial depth.
 
-Before selecting `DIRECT` for nontrivial work with a capable main model, state why delegation would lose more context, time, or reliability than it saves. Before selecting `METASWARM`, answer explicitly:
+Before selecting `DIRECT` for nontrivial work with a capable main model, state why delegation would lose more context, time, or reliability than it saves and name the lower-tier direct route. Before selecting `METASWARM`, answer explicitly:
 
 - What concrete coordination failure would `DIRECT`, `LEAN`, or `STRUCTURED` leave unmanaged?
 - Which verified Metaswarm capability addresses that failure?
@@ -169,7 +182,7 @@ Record the chosen framework or native mechanism, verified invocation if known, a
 
 Plan an **outcome ladder**, not a line-by-line script:
 
-1. **Boot, activate, and re-ground** — load every queued skill, verify planned MCP/connectors and worker routes, refresh volatile state, instructions, permissions, dependencies, and the selected framework's availability. Start from the recorded continuity boundary; do not redo settled discovery.
+1. **Boot, activate, and re-ground** — load every queued skill, verify planned MCP/connectors, worker routes, and model assignments, refresh volatile state, instructions, permissions, dependencies, and the selected framework's availability. Down-route any lane assigned above its lowest sufficient current tier. Start from the recorded continuity boundary; do not redo settled discovery.
 2. **Establish or confirm structure** — understand the existing architecture. For greenfield or substantial feature work, create a minimal **walking skeleton**: real boundaries, interfaces/data flow, and the thinnest buildable or runnable end-to-end path.
 3. **Expand by value and dependency** — implement the next highest-value slices on that proven structure, keeping changes small enough to verify.
 4. **Verify and repair continuously** — run the relevant tests, builds, static checks, and evidence reads after each milestone; fix ordinary failures and continue.
@@ -233,6 +246,7 @@ Use this instead of the standard template for `COMPACT` depth. Omit empty option
 ## 0. Launch Contract
 - **Execution:** <shape and native mechanism>; <one-sentence right-sizing reason>
 - **Capability activation:** <ranked skills/plugins/tools/MCP connectors to load or use at boot, first use, and fallback; include efficient-frontier and ponytail when available/applicable>
+- **Model routing:** <each lane → FAST/Haiku-class, BALANCED/Sonnet-class, or FRONTIER; exact available route, escalation trigger, and any justified frontier exception>
 - **Recommended install/connect:** <highest-ranked relevant missing option, research source, Claude/Codex setup path, permissions, and human answer; or none>
 - **Human decision state:** <none needed | one entry per choice: answered—decision, horizon, and source; deferred—decision, option-preserving default or safe boundary, and revisit trigger>
 - **One-shot horizon:** <full remaining safe outcome>
@@ -297,6 +311,16 @@ Use this instead of the standard template for `COMPACT` depth. Omit empty option
 | <tier; MCP connector, skill, plugin, tool, worker/model route> | <provider/source/date; installed/authenticated state in Claude or Codex> | <specific role and milestone> | <exact invocation, install/connect decision, or selection> | <next direct verified mechanism> |
 
 Include only capabilities with a real job. Rank and queue authoritative MCP connectors first, capable-model orchestration through `$efficient-frontier` when available/applicable, `$ponytail` or `ponytail:ponytail` for minimum correct implementation, and more specific installed skills before generic or custom work. If the optimal relevant path is missing, record the researched Claude/Codex install recommendation, human answer, and fallback.
+
+### Model assignment matrix
+
+<Required for every nontrivial handoff. Resolve exact available routes at boot; use family names such as Haiku or Sonnet only as capability-class examples, not proof of availability.>
+
+| Lane / task | Work class and risk | Assigned tier / model route | Why this is the lowest sufficient tier | Escalation trigger | Frontier exception |
+|---|---|---|---|---|---|
+| <lane> | <deterministic legwork, bounded coding, or judgment-bearing work> | <FAST, BALANCED, or FRONTIER; verified route> | <capability/verification fit> | <evidence required to move up one tier> | <why lower tiers are insufficient, or none> |
+
+No task may default to the main model merely because it already owns the session. Search, inventory, extraction, summarization, log reduction, test execution, formatting, and mechanical edits belong to FAST or BALANCED routes whenever the runtime exposes a sufficient one.
 
 ### Optional execution/delegation map
 <Use only for LEAN, STRUCTURED, or METASWARM when it adds operational value. For DIRECT write “None — direct execution is the most efficient adequate shape because <specific reason>.”>
@@ -393,7 +417,11 @@ Expected: <what each command proves and what it does not prove>.
 - [ ] If the optimal relevant connector/plugin is available but missing, did the author recommend its receiving-harness-specific installation, disclose permissions/trust and efficiency tradeoffs, obtain an answer or explicit defer, and preserve the fallback?
 - [ ] Are authoritative MCP connectors preferred for the systems they expose, with authentication/authority limits and non-MCP fallbacks represented honestly?
 - [ ] Were `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific available skills explicitly evaluated and queued when applicable rather than merely named?
-- [ ] When the main model is materially more capable and work is delegable, does the plan preserve it for orchestration, synthesis, integration, and review; or explicitly justify `DIRECT`?
+- [ ] Does every nontrivial execution lane have a verified FAST, BALANCED, or FRONTIER assignment using the least expensive and fastest tier that can complete it reliably?
+- [ ] Are Haiku-class/fast routes assigned deterministic legwork and Sonnet-class/balanced routes assigned bounded coding and analysis whenever those routes are sufficient and available?
+- [ ] Is every frontier execution assignment limited to judgment-bearing work and accompanied by concrete evidence that FAST and BALANCED are insufficient?
+- [ ] Do escalation rules move up only one tier after an observable failure or capability gap instead of promoting work preemptively?
+- [ ] When the main model is materially more capable and work is delegable, does the plan preserve it for orchestration, synthesis, integration, and review rather than execution legwork?
 - [ ] Did the handoff author choose and justify the most efficient adequate execution shape?
 - [ ] Is the document itself compact, standard, or governed at the lightest adequate depth, without repeated claims or hypothetical future proof?
 - [ ] If Metaswarm was selected, is its concrete advantage over lighter shapes evidence-backed and its availability/setup honest?
@@ -422,12 +450,15 @@ Expected: <what each command proves and what it does not prove>.
 12. **Authority expansion** — using handoff or delegation to bypass approval, sandbox, privacy, security, cost, production, or destructive-action gates.
 13. **Vague launch** — “continue the work” or “follow the plan” without a concrete starting move, outcome ladder, verification loop, and stop conditions.
 14. **Transcript dump** — copying chat history instead of synthesizing operational truth and decisions.
-15. **Premature direct coding** — spending a more capable main model on bounded research, mechanical implementation, or test execution when verified workers can own those lanes and return evidence.
+15. **Frontier legwork** — spending a frontier model on search, inventory, extraction, summarization, logs, test execution, formatting, or bounded mechanical work that a verified FAST or BALANCED route can own.
 16. **Decorative capability queue** — naming MCP, `$efficient-frontier`, `$ponytail`, or another skill without assigning its first real use, startup action, and fallback.
 17. **Progress amnesia** — capturing the current plan but omitting completed side work, the exact stop point, active/background lanes, recovery state, failed approaches, or what must not be redone.
 18. **Installed-is-best bias** — choosing a lower-efficiency path only because it is already configured, without researching and recommending a superior relevant option.
 19. **Harness leakage** — assuming a Claude connector, skill invocation, authentication, or installation path works in Codex, or vice versa, without verifying and recording the receiving runtime's setup.
 20. **Manual-workaround reflex** — asking for pasted data, browser choreography, or custom integration code before searching provider-primary sources and the runtime's connector/plugin catalog.
+21. **One-model handoff** — assigning every lane to the session's main model without task-by-task capability and cost classification.
+22. **Frontier by default** — selecting the strongest model without documenting why both FAST and BALANCED tiers are insufficient.
+23. **Escalation leap** — jumping directly from a failed economy lane to frontier instead of trying the balanced workhorse tier or an equivalent route.
 
 ## Relationship to Other Tools
 
@@ -435,10 +466,10 @@ Expected: <what each command proves and what it does not prove>.
 - Reference existing plan, tracker, or framework state instead of duplicating it. Live repository and external state outrank persisted summaries.
 - Prefer an available authenticated MCP connector for the system it authoritatively exposes, then fall back to the next direct verified mechanism. A connector never expands authority.
 - Before accepting a lower-ranked access path, research the provider's official connector/MCP options and the receiving Claude or Codex catalog. Recommend the optimal relevant missing option for human installation or authorization and preserve an explicit fallback if deferred.
-- Use capable frontier models as planners, integrators, and reviewers when bounded worker lanes exist. Apply `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and task-specific skills when verified and applicable; queue exact use rather than relying on the receiver to rediscover them.
+- Use capable frontier models as planners, integrators, and reviewers when bounded worker lanes exist. Assign deterministic legwork to Haiku-class/fast routes and bounded coding or analysis to Sonnet-class/balanced routes when sufficient; require a written lower-tier insufficiency case for every frontier execution lane. Apply `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and task-specific skills when verified and applicable; queue exact use rather than relying on the receiver to rediscover them.
 - Use native platform delegation and project tooling before adding persistent orchestration infrastructure. Select Metaswarm only for work whose coordination needs justify it.
 - Capture durable organizational knowledge separately. Baton preserves the transient state and execution contract for this continuation.
 
 ## Attribution
 
-Baton is derived from the **handoff** skill in [metaswarm](https://github.com/dsifry/metaswarm) by Dave Sifry (MIT License). It retains the self-contained handoff document and exact closing-sentence contract while generalizing execution across frameworks and runtimes. Baton adds a pre-finalization human leverage gate with explicit defer semantics, comprehensive momentum preservation, capability and MCP activation planning, efficient capable-model orchestration, an evidence-led adversarial review spine, a long one-shot continuation mission, and architecture/walking-skeleton-first guidance for substantial product work. Metaswarm remains an available execution choice when its coordination and governance machinery is justified. See `NOTICE` for full attribution.
+Baton is derived from the **handoff** skill in [metaswarm](https://github.com/dsifry/metaswarm) by Dave Sifry (MIT License). It retains the self-contained handoff document and exact closing-sentence contract while generalizing execution across frameworks and runtimes. Baton adds a pre-finalization human leverage gate with explicit defer semantics, comprehensive momentum preservation, capability and MCP activation planning, mandatory least-sufficient model assignment, efficient capable-model orchestration, an evidence-led adversarial review spine, a long one-shot continuation mission, and architecture/walking-skeleton-first guidance for substantial product work. Metaswarm remains an available execution choice when its coordination and governance machinery is justified. See `NOTICE` for full attribution.
