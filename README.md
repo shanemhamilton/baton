@@ -107,6 +107,18 @@ To check any handoff in any repo, either copy the Step 8 block from `skills/bato
 bash /path/to/baton/evals/check.sh --root <repo-root> <handoff.md>
 ```
 
+### Results (v2.0.0, 2026-09-01)
+
+Eight eval scenarios (non-interactive human choice, subagent author, low-context compaction, trivial one-file fix, multi-repo worktree, money-path high risk, non-git directory, background lanes), each run with the author model reading only the skill file.
+
+| Author model | Runs | Both deliverables | Checker failures |
+|---|---|---|---|
+| Claude Sonnet, all eight scenarios | 8 | 8 | 0 |
+| Claude Opus and Claude Fable, two scenarios each | 4 | 4 | 0 |
+| Codex gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, two scenarios each | 6 | 6 | 0 |
+
+v1.1 on the same 18 runs produced both deliverables 17 times and passed 83% of the generic assertions. Fresh Sonnet receivers with no skill loaded completed the first milestone with green tests on 3 of 3 v2 handoffs. Trigger accuracy against near-miss requests: 59 of 60 (v1.1: 55 of 60).
+
 ---
 
 ## Attribution

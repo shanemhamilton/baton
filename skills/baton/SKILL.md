@@ -191,7 +191,7 @@ Then reread the file as the receiver would: if you could not run the first move 
 <What green proves, and what it does not.>
 
 ## 5. Risks and Hard Stops
-- <risk or blocker, owner, evidence needed, whether it blocks now> — or "None known."
+- <risk or blocker, owner, evidence needed, whether it blocks now; for a hard stop, the exact forbidden action and the nearest allowed one> — or "None known."
 
 ## 6. Continuation Mission
 - **Start by:** <one concrete move naming the artifact>
