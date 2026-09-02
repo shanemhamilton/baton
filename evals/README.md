@@ -41,3 +41,37 @@ comment at the top of `run-scenario.sh` for the exact handoff points.
 
 `check.sh` does regex matching, not Markdown parsing, so a git ref or version string can
 read as an unresolved path — expected noise on real corpus documents, not a bug.
+
+## Trigger eval
+
+The script resets the scratch repo (`git checkout -- . && git clean -fd`) before every run so one run's artifacts never leak into the next, and the scratch repo is seeded with a small project that has one failing test so that handoff-style requests are realistic.
+
+`trigger-eval.sh <claude|codex> <index> <rep> [outdir]` measures whether a harness selects
+the baton skill on its own — no prompt naming it, no slash command except the one deliberate
+`/baton` case — for one query from `.tmp/trigger/queries.tsv` (columns: index, should_trigger,
+query; not committed, since it names other installed skills). It runs the query once from
+`.tmp/trigger/scratch`, a minimal git repo with no baton awareness of its own, through:
+
+- **claude** — `claude -p --model sonnet --max-turns 6 --allowedTools Skill --output-format
+  json "<query>"`, 180-second timeout. Detection parses the JSON event array for an
+  `assistant` message whose content holds a `tool_use` block named `Skill`; `input.skill`
+  equal to or prefixed with `baton`/`/baton` marks `invoked_baton=true`.
+- **codex** — `codex exec -s read-only --skip-git-repo-check -C <scratch> -o last.txt
+  "<query>"`, 240-second timeout (not a detection failure — whatever the log captured before
+  the deadline still counts). Detection greps `codex.log` for a read-style shell command
+  (`cat`/`sed`/`head`/`tail`/`less`/`more`/`bat`/`rg`/`grep`/`awk`) applied to a
+  `skills/<name>/SKILL.md` path. A bare substring match over the whole log over-fires: the
+  log also echoes `~/.codex/memories/MEMORY.md` content, which can quote a skill path from a
+  past session with no read happening now, and prints a plain existence probe
+  (`[ -f "$p/SKILL.md" ]`) that never resolves to a literal path — the read-verb requirement
+  filters both out.
+
+Each run writes `<outdir>/<harness>-q<index>-r<rep>/` (default outdir: `.tmp/trigger/runs/`)
+with the raw transcript (`out.json`/`err.txt` for claude, `codex.log`/`last.txt` for codex)
+plus a one-line `result.tsv`: `index  harness  rep  invoked_baton(true|false)
+other_skills(csv|none)  seconds`. The same line prints to stdout.
+
+Codex's skill choice is not stable run to run: a repeat of the same query can read baton's
+own `SKILL.md` on one run and a competing handoff-shaped skill (metaswarm's, in this
+repository's case) on the next, without ever opening baton's file. Run more than one `rep`
+per index before drawing a conclusion about trigger rate.

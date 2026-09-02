@@ -284,6 +284,7 @@ while IFS=$'\t' read -r ln tok; do
   # origin/codex/some-branch) are never real repo-relative paths.
   case "$tok" in
     "origin/"*) continue ;;
+    /v[0-9]*/*|/api/*) continue ;;   # URL routes such as /v1/report or /api/users are not filesystem paths
   esac
   # commit-hash-prefixed git-show refs (11e9833:Sources/App/Foo.swift): the
   # part after the colon may be a real path, but the checker can't test-e a git-show

@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/ba
   -o ~/.agents/skills/baton/SKILL.md
 ```
 
-Codex discovers skills under `$HOME/.agents/skills` and a repo's own `.agents/skills`. Or per-project: put the file at `.agents/skills/baton/SKILL.md` inside the repo.
+Codex discovers skills under `$HOME/.agents/skills` and a repo's own `.agents/skills`. Or per-project: put the file at `.agents/skills/baton/SKILL.md` inside the repo. If the metaswarm plugin is enabled in Codex, its `handoff` skill competes with baton on handoff-shaped requests; invoke `$baton` explicitly when the choice matters.
 
 ### Claude Code (global — every project)
 
@@ -116,8 +116,10 @@ Eight eval scenarios (non-interactive human choice, subagent author, low-context
 | Claude Sonnet, all eight scenarios | 8 | 8 | 0 |
 | Claude Opus and Claude Fable, two scenarios each | 4 | 4 | 0 |
 | Codex gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, two scenarios each | 6 | 6 | 0 |
+| v2.0.1 follow-up: Opus and Fable on the six remaining scenarios | 12 | 12 | 0 |
+| v2.0.1 follow-up: Codex luna, terra, sol on the six remaining scenarios | 18 | 18 | 1 (a URL route read as a path; fixed) |
 
-v1.1 on the same 18 runs produced both deliverables 17 times and passed 83% of the generic assertions. Fresh Sonnet receivers with no skill loaded completed the first milestone with green tests on 3 of 3 v2 handoffs. Trigger accuracy against near-miss requests: 59 of 60 (v1.1: 55 of 60).
+v1.1 on the same 18 runs produced both deliverables 17 times and passed 83% of the generic assertions. Fresh Sonnet receivers with no skill loaded completed the first milestone with green tests on 3 of 3 v2 handoffs. Trigger accuracy against near-miss requests, judged by a Sonnet simulation of skill selection: 59 of 60 (v1.1: 55 of 60). Harness-native trigger eval through `claude -p` and `codex exec` (20 requests, 2 reps, no API key): Claude Code invoked baton in 15 of 18 should-trigger runs and never for a should-not request; Codex invoked it in 15 of 20 should-trigger runs and, in substance, never for a should-not request. On Codex, metaswarm's `handoff` skill won 3 of the 5 misses.
 
 ---
 

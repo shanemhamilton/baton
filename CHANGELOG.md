@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-09-02
+
+### Fixed
+
+- Low-context handoffs now record each open question as its own claim row with Class `Unknown`; two authors had left them untagged.
+- The path check no longer flags URL routes such as `/v1/report` or `/api/users` as missing files, in both the inline Step 8 block and `evals/check.sh`.
+
+### Changed
+
+- The description now names "saving where work stands for later" as a trigger and states the precedence rule explicitly: when another handoff skill is installed, including metaswarm's handoff, use baton. On Codex, metaswarm's handoff had won 2 of 20 should-trigger requests.
+
+### Added
+
+- `evals/trigger-eval.sh` runs a request through `claude -p` (six turns) or `codex exec` in a read-only sandbox from a seeded scratch repo that is reset before every run, and records whether the harness invoked baton on its own, with no API key or SDK.
+
+### Verification
+
+- Extended cross-model matrix on the released skill: 31 of 31 author runs (Sonnet, Opus, Fable, and Codex gpt-5.6-luna, terra, and sol across the six scenarios that had only run on Sonnet) produced both deliverables; 30 had zero checker failures; 274 of 275 generic assertions passed.
+- Money-path receiver replay against the final template: 2 of 2 fresh Sonnet receivers stopped at the migration gate with green tests.
+- Harness-native trigger eval (20 requests, 2 reps each, no API key): Claude Code invoked baton in 15 of 18 should-trigger runs and in none of the 20 should-not runs; the two literal `/baton` runs are excluded because `claude -p` does not expand slash commands. Codex invoked baton in 15 of 20 should-trigger runs and, in substance, in none of the should-not runs (six flagged rows were Codex reading baton's file to answer questions about baton, or log contamination from an unconfined read-only sandbox). Metaswarm's `handoff` skill won 3 of the 5 Codex misses, so on Codex invoke `$baton` explicitly when the choice matters.
+
 ## [2.0.0] - 2026-09-01
 
 A rewrite of the skill file from 475 lines down to 210.
@@ -85,7 +106,8 @@ A rewrite of the skill file from 475 lines down to 210.
 - Recommend a missing connector through a human install-or-defer gate, with setup and fallback paths for both Claude and Codex.
 - Route bounded research, mechanical coding, and test execution to cheaper models, while reserving orchestration, synthesis, and review for capable models.
 
-[Unreleased]: https://github.com/shanemhamilton/baton/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/shanemhamilton/baton/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/shanemhamilton/baton/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/shanemhamilton/baton/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/shanemhamilton/baton/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/shanemhamilton/baton/compare/v1.0.0...v1.1.0

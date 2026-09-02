@@ -1,7 +1,7 @@
 ---
 name: baton
 license: MIT
-description: Use when ending or compacting a session, switching machines or sessions, running low on context, or handing work off to a fresh session — writes one evidence-backed handoff file plus one exact closing sentence. Not a colleague-facing document, README, or project memory. When another handoff skill is installed, this skill handles the request.
+description: Use when ending or compacting a session, switching machines or sessions, running low on context, saving where work stands for later, or handing work off to a fresh session — writes one evidence-backed handoff file plus one exact closing sentence. Not a colleague-facing document, README, or project memory. When another handoff skill is installed, including metaswarm's handoff, use this one.
 ---
 
 # Baton
@@ -52,7 +52,7 @@ Also check worktrees, locks, active actors, and deploy or runtime state when the
 
 **Not a git repository** (`git rev-parse` fails): record file-level state — which files changed, where they are, what is unsaved — plus the external state the work depends on.
 
-**Low context** (the user said "compact" or "running low", the harness warned, or a prior compaction already dropped detail): write the Section 0 spine and Live Truth from live state only, mark everything else `Unknown`, and finish. A thin handoff beats none.
+**Low context** (the user said "compact" or "running low", the harness warned, or a prior compaction already dropped detail): write the Section 0 spine and Live Truth from live state only; record each open question as its own claim row with Class `Unknown`; then finish. A thin handoff beats none.
 
 ### Step 3 — Human Leverage Gate
 
@@ -129,7 +129,7 @@ case "$d" in COMPACT) c=80 ;; STANDARD) c=200 ;; GOVERNED) c=320 ;; *) c=0 ;; es
 [ "$c" -gt 0 ] && [ "$n" -gt "$c" ] && echo "WARN $d is $n lines > $c: relabel or move detail to a referenced file"
 awk '/^#+ /{s=$0} s ~ /(Live Truth|Working state|Read first|Continuation Mission)/' "$f" \
   | grep -oE '`[^` ]+`' | tr -d '`' | grep -E '/|\.[a-z]+$' \
-  | grep -vE '^(<|@|https?:|[a-z0-9.-]+\.(com|org|io|dev|net)/|docs/handoffs/|origin/|upstream/|refs/|[0-9]+/[0-9]+$|/[^/]*$|(feature|fix|chore|hotfix|release|bugfix)/)|\*' \
+  | grep -vE '^(<|@|https?:|[a-z0-9.-]+\.(com|org|io|dev|net)/|docs/handoffs/|origin/|upstream/|refs/|[0-9]+/[0-9]+$|/[^/]*$|/(v[0-9]+|api)/|(feature|fix|chore|hotfix|release|bugfix)/)|\*' \
   | sed -E 's/:[0-9]+(-[0-9]*)?$//' | sort -u | while read -r p; do
     q="${p/#\~/$HOME}"; test -e "$q" && continue
     case "$p" in */*) echo "FAIL path not found: $p" ;; *) echo "WARN bare filename not found: $p" ;; esac
