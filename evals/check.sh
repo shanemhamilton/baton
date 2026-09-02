@@ -189,8 +189,8 @@ END {
 }
 ' "$FILE" > "$TMPDIR_CHECK/c4_table.txt"
 
-# 4b: bold or table-cell class-like synonyms anywhere in the file.
-grep -noE '(\*\*(Believed|Stale|Assumed|Inferred)\*\*|\|[[:space:]]*(Believed|Stale|Assumed|Inferred)[[:space:]]*\|)' "$FILE" \
+# 4b: bold, table-cell, or em-dash-prefixed class-like synonyms anywhere in the file.
+grep -noE '(\*\*(Believed|Stale|Assumed|Inferred|Confirmed|Reported|Likely|Estimated)\*\*|\|[[:space:]]*(Believed|Stale|Assumed|Inferred|Confirmed|Reported|Likely|Estimated)[[:space:]]*\||—[[:space:]]+(Believed|Stale|Assumed|Inferred|Confirmed|Reported|Likely|Estimated))' "$FILE" \
   > "$TMPDIR_CHECK/c4_syn.txt" 2>/dev/null
 
 if [ -s "$TMPDIR_CHECK/c4_table.txt" ]; then
@@ -200,7 +200,7 @@ if [ -s "$TMPDIR_CHECK/c4_table.txt" ]; then
 fi
 if [ -s "$TMPDIR_CHECK/c4_syn.txt" ]; then
   while IFS=: read -r ln rest; do
-    word=$(echo "$rest" | grep -oE 'Believed|Stale|Assumed|Inferred' | head -1)
+    word=$(echo "$rest" | grep -oE 'Believed|Stale|Assumed|Inferred|Confirmed|Reported|Likely|Estimated' | head -1)
     emit "$SEV_C4" C4 "line $ln: disallowed class-like label '$word'"
   done < "$TMPDIR_CHECK/c4_syn.txt"
 fi
@@ -263,6 +263,14 @@ while IFS=$'\t' read -r ln tok; do
   case "$tok" in
     -*) continue ;;
   esac
+  # a scheme-less domain prefix (github.com/org/repo) reads as a URL missing its
+  # protocol, not a citation; an @-scoped spec or a glob pattern is never a real path.
+  case "$tok" in
+    "@"*|*"*"*) continue ;;
+  esac
+  if [[ "$tok" =~ ^[a-z0-9.-]+\.(com|org|io|dev|net)/ ]]; then
+    continue
+  fi
   # package@version specs (google-gax@5.0.6, @google-cloud/tasks@6.2.3) never appear as
   # real repo paths in this corpus; a literal "@" is a clean, generic tell.
   case "$tok" in
