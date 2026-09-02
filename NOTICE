@@ -18,36 +18,33 @@ The document structure, method steps, template, and anti-patterns originate
 from metaswarm's handoff skill and are used under the terms of the MIT License.
 
 Baton's additions over the original:
-  - A pre-finalization Human Leverage Gate that pauses for one to three
-    material human-owned choices, provides a recommendation, and records an
-    option-preserving defer path; it repeats until clear without outsourcing
-    discoverable or safely testable engineering judgment.
-  - Section 0 "Receiving Session Contract" — records a long one-shot horizon,
-    exact continuity boundary, capability activation plan, live-state boot
-    checks, authority boundaries, hard stops, and the most efficient adequate
-    execution mechanism before work resumes.
-  - Comprehensive momentum preservation across material completed, unverified,
-    in-progress, delegated, failed, recoverable, and remaining work without
-    turning the handoff into a transcript dump.
-  - Runtime-wide Claude/Codex capability discovery, ranked access paths, and
-    activation planning, with preference for authoritative MCP connectors,
-    research-backed install recommendations, and explicit evaluation of
-    applicable efficiency and domain skills.
-  - A right-sizing ladder that prefers capable-model orchestration for bounded
-    delegable work, while retaining direct execution for tiny or tightly
-    coupled work and Metaswarm for justified persistent coordination.
-  - A mandatory least-sufficient model matrix that routes deterministic
-    legwork to fast/economy models, bounded coding and analysis to balanced
-    workhorses, and frontier models only to documented judgment-bearing work.
-  - Compact, standard, and governed handoff depths so evidence remains
-    proportional and narrow work does not inherit orchestration theater.
-  - An evidence-led adversarial spine: classified claims, contradiction-seeking,
-    fresh independent challenge, central spot-checks, and risk-scaled review.
-  - Architecture and runnable walking-skeleton guidance before detailed feature
-    expansion when substantial product work needs new structure.
-  - Longest-safe-one-shot continuation rules rather than stopping automatically
-    after one small milestone or maximizing fan-out.
-  - Generalization to be framework-agnostic (no hard dependency on any
-    orchestration framework, issue tracker, or plugin).
+  - A pre-finalization Human Leverage Gate: the file is written before the
+    human is asked anything, at most one round of one to three qualifying
+    questions follows, and an unanswered choice is recorded as deferred by
+    absence with its option-preserving default and revisit trigger, so
+    non-interactive, scheduled, and subagent runs never stall.
+  - Four named evidence classes — Observed, Derived, Volatile, Unknown, no
+    synonyms — applied to every load-bearing claim, plus a requirement that
+    every cited path resolve from the repository root or be given absolute.
+  - Least-sufficient tier routing: every execution lane is assigned to a
+    FAST, BALANCED, or FRONTIER model family (not a model ID, unless a real
+    catalog is cited), with a one-sentence insufficiency case for any
+    FRONTIER lane.
+  - Runtime capability activation that enumerates the receiving harness's
+    actual skills, tools, subagents, and connectors, ranks access paths, and
+    recommends a missing option for the human to approve — Baton never
+    installs or authorizes a capability itself.
+  - One handoff template with three soft-ceiling depth labels (COMPACT,
+    STANDARD, GOVERNED) instead of a separate structure per shape, so
+    evidence stays proportional to the work's real uncertainty.
+  - Two execution shapes, DIRECT and LEAN, with escalation past LEAN gated on
+    naming a concrete coordination failure neither shape can manage.
+  - A mechanical Step 8 check — an inline bash block, or the repository's own
+    evals/check.sh when present — that a handoff must pass before its closing
+    sentence is emitted, plus the evals/ tooling that replays that check
+    across a corpus of real and generated handoffs.
+  - Generalization to be harness-agnostic, tested on Claude Code and OpenAI
+    Codex CLI, with no hard dependency on any orchestration framework, issue
+    tracker, or plugin.
 
 Grateful thanks to Dave Sifry and the metaswarm project.

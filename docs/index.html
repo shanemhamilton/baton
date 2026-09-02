@@ -292,7 +292,7 @@
   <div class="wrap">
     <div class="eyebrow">The core idea, running</div>
     <h2>Spend the strongest model only on judgment.</h2>
-    <p class="lead">This example has five independent evidence checks, so Haiku-class fast workers handle deterministic scans, Sonnet-class balanced workers handle bounded analysis, and the frontier main model keeps its context for synthesis and review. Direct work still runs on the lowest sufficient tier.</p>
+    <p class="lead">This example has five independent evidence checks, so FAST workers handle deterministic scans, BALANCED workers handle bounded analysis, and the FRONTIER main model keeps its context for synthesis and review. Direct work still runs on the lowest sufficient tier.</p>
 
     <div class="demo">
       <div class="demo-controls">
@@ -337,27 +337,24 @@
           <b style="color:var(--text)">Complete continuity</b> — preserve every important result, decision, active lane, recovery state, exact stop point, next move, and do-not-redo boundary.<br/><br/>
           <b style="color:var(--text)">Ranked capability activation</b> — inspect each receiving Claude or Codex runtime, rank installed and installable paths, prefer authoritative MCP, and queue each real capability with its first use and fallback.<br/><br/>
           <b style="color:var(--text)">Better-tool installation</b> — research provider-primary and runtime-catalog options before accepting manual work; ask the human to connect the optimal missing option or explicitly defer.<br/><br/>
-          <b style="color:var(--text)">Least-sufficient models</b> — assign every lane to FAST/Haiku-class, BALANCED/Sonnet-class, or FRONTIER; frontier execution requires proof that both lower tiers are insufficient.<br/><br/>
+          <b style="color:var(--text)">Least-sufficient models</b> — assign every lane to FAST, BALANCED, or FRONTIER by model family, not model ID unless a real catalog is cited; each FRONTIER lane carries one sentence on why lower tiers are insufficient.<br/><br/>
           <b style="color:var(--text)">Efficient orchestration</b> — keep frontier models on planning, synthesis, integration, and review while efficient workers execute search, extraction, logs, mechanical coding, and tests.<br/><br/>
           <b style="color:var(--text)">Adversarial truth</b> — classify load-bearing claims, hunt contradictions, use a fresh challenger, and rerun decisive checks.<br/><br/>
           <b style="color:var(--text)">One-shot momentum</b> — establish a runnable walking skeleton when new structure is needed, then keep expanding and verifying until done or a real hard stop.
         </p>
       </div>
       <div class="doc" aria-label="example Section 0">
-<span class="c">## 0. Receiving Session Contract</span>
-<span class="k">- Shape:</span> <span class="s">LEAN</span> native delegation
-<span class="k">- Depth:</span> standard, outcome-level
-<span class="k">- Activate:</span> ranked MCP source · efficient-frontier · ponytail
-<span class="k">- Install:</span> optimal missing connector / human defer
-<span class="k">- Models:</span> scans→FAST · coding→BALANCED · synthesis→FRONTIER
-<span class="k">- Human input:</span> cleared / answered / deferred
-<span class="k">- Why:</span> 3 independent evidence checks
-<span class="k">- Resume:</span> exact stop point; do not repeat discovery
-<span class="k">- Horizon:</span> walking skeleton → vertical slices
-<span class="k">- Review:</span> fresh falsification challenger
-<span class="k">- Boot:</span> refresh repo, tracker, locks, runtime
-<span class="k">- Keep going:</span> verify, repair, take next slice
-<span class="k">- Stop:</span> only DoD, approval, or hard blocker
+<span class="c">## 0. Launch Contract</span>
+<span class="k">- Execution:</span> <span class="s">LEAN</span>, native delegation
+<span class="k">- Document depth:</span> STANDARD
+<span class="k">- Capability activation:</span> ranked skill/MCP source · efficient-frontier · ponytail
+<span class="k">- Recommended install/connect:</span> optimal missing connector — human defer
+<span class="k">- Model routing:</span> scans→FAST · coding→BALANCED · synthesis→FRONTIER
+<span class="k">- Human decision state:</span> none needed / answered / deferred
+<span class="k">- One-shot horizon:</span> 3 independent evidence checks, then integrate
+<span class="k">- Review tier and challenge:</span> fresh falsification challenger
+<span class="k">- Boot refresh:</span> repo, tracker, locks, runtime
+<span class="k">- Hard stops and authority:</span> DoD, approval, or named blocker
       </div>
     </div>
   </div>
@@ -368,7 +365,7 @@
   <div class="wrap">
     <div class="eyebrow">Anatomy of a handoff</div>
     <h2>Only as much detail as the work earns.</h2>
-    <p class="lead">Narrow, low-uncertainty work merges the essentials into a compact six-section handoff. Substantial and governed work can use the fuller map below without turning every future edit into a script.</p>
+    <p class="lead">One seven-section template scales by depth, not by structure: an 80-line COMPACT for narrow, low-uncertainty work, a 200-line STANDARD, or a 320-line GOVERNED for higher-risk work.</p>
     <div class="rows" id="rows"></div>
   </div>
 </section>
@@ -392,7 +389,7 @@
       Baton is a derivative of the <b>handoff</b> skill from
       <a href="https://github.com/dsifry/metaswarm">metaswarm</a> by <b>Dave Sifry</b> (MIT).
       The self-contained handoff structure and exact launch sentence come from metaswarm; Baton adds
-      a human leverage gate, comprehensive momentum preservation, MCP and capability activation planning, mandatory least-sufficient model assignment, efficient capable-model orchestration, adversarial evidence checks, long one-shot missions, and walking-skeleton guidance.
+      a human leverage gate with deferred-by-absence, four evidence classes with root-resolved paths, least-sufficient tier routing, capability activation with recommend-and-ask, one template with three depth labels, DIRECT/LEAN execution shapes, and a mechanical Step 8 check — tested on Claude Code and Codex.
       Grateful thanks to Dave and the metaswarm project.
     </p>
     <div>
@@ -431,17 +428,13 @@
 
   // ----- anatomy rows -----
   const SECTIONS=[
-    ['0','Receiving Session Contract','ranked capability/MCP activation · model matrix · install decision · continuity boundary · hard stops',true],
-    ['1','Objective','What we\'re accomplishing, and why'],
-    ['2','Definition of Done','Verifiable acceptance criteria'],
-    ['3','Current Status','Done/verified · unverified · in-progress · do-not-redo · active work · not-started · working tree'],
-    ['4','Truth Ledger & Required Reading','Evidence classes, volatile refreshes, paths, and what to inspect'],
-    ['5','Key Decisions','Settled or deferred choices, rationale, and revisit triggers'],
-    ['6','Architecture / Walking Skeleton','Existing boundaries, first structural proof, and value-ordered expansion'],
-    ['7','Verification Loop','Exact checks and what each proves or cannot prove'],
-    ['8','Questions, Risks & Hard Stops','What truly needs the user, external state, or a safety gate'],
-    ['9','Continuation Mission','Full safe one-shot target, concrete start, and keep-going rule'],
-    ['10','Later Horizons','Outcome-level work intentionally outside this session'],
+    ['0','Launch Contract','Main directive · document depth · status · execution (DIRECT/LEAN) · capability activation · recommended install/connect · model routing · human decision state · one-shot horizon · review tier and challenge · boot refresh · hard stops and authority · owning repository',true],
+    ['1','Outcome and Done','Objective and why · observable acceptance criteria'],
+    ['2','Live Truth','Status · momentum checkpoint · working state · claim table (Observed/Derived/Volatile/Unknown) · read first'],
+    ['3','Decisions and Structure','Settled and deferred decisions · first structural milestone'],
+    ['4','Verification','Smallest decisive check set, and what it does and does not prove'],
+    ['5','Risks and Hard Stops','Blocker, owner, evidence needed, whether it blocks now'],
+    ['6','Continuation Mission','Start by · continue through · keep going until'],
   ];
   document.getElementById('rows').innerHTML=SECTIONS.map(s=>
     `<div class="row ${s[3]?'zero':''}"><span class="num">${s[0]}</span><span class="nm">${s[1]}</span><span class="ds">${s[2]}</span></div>`

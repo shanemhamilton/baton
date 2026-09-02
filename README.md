@@ -4,19 +4,15 @@
 
 > **Website:** https://shanemhamilton.github.io/baton/
 
-Most handoffs answer *what to do next*. Baton also preserves **exactly where useful work stopped, how far the next session should go, and the most efficient reliable way to get there**:
-
-- **Comprehensive continuity** — every material verified or unverified result, in-progress lane, decision, artifact, blocker, failed approach worth preserving, recovery state, and remaining obligation is captured without turning the handoff into a transcript dump.
-- **No momentum loss** — the receiving session gets the exact stopping point, next concrete move, active/background work, and a do-not-redo boundary so it refreshes volatile facts and resumes instead of restarting the investigation.
-- **Ranked capability and MCP activation** — Baton independently inspects the receiving Claude or Codex runtime, ranks installed and installable paths from authoritative structured connectors through manual fallbacks, and queues each consequential capability with its first use and fallback.
-- **Better-tool installation gate** — before accepting CLI, browser, pasted-data, or custom-glue work, Baton researches current provider-primary and runtime-catalog options. If the optimal relevant connector is missing, it recommends the exact Claude/Codex install path and asks the human to connect it or explicitly defer to the documented fallback.
-- **Least-sufficient model assignment** — every nontrivial lane gets a mandatory model route: FAST/economy for deterministic legwork such as Haiku-class workers, BALANCED/workhorse for bounded coding and analysis such as Sonnet-class workers, and FRONTIER only for judgment-bearing work with a written lower-tier insufficiency case.
-- **Capable-model orchestration** — the strongest main model stays on planning, architecture, synthesis, integration, and final review while efficient workers handle search, inventory, extraction, logs, mechanical coding, and tests. A direct execution shape must still use the lowest sufficient model tier. Baton explicitly evaluates `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific installed skills.
-- **Right-sized execution and detail** — the handoff author chooses the most efficient adequate `DIRECT`, `LEAN`, `STRUCTURED`, or `METASWARM` shape from dependency, collision, risk, coordination overhead, and main-model opportunity cost, then chooses compact, standard, or governed document depth.
-- **Human leverage gate** — when one to three unresolved human-owned choices would materially improve the next session, Baton pauses before finalization with practical options, a recommended default, and an explicit defer path. It repeats the gate until clear and does not stop for facts or technical questions the agent can resolve safely.
-- **Adversarial evidence** — live-state claims carry evidence, a falsification pass hunts contradictions, and a fresh challenger reviews every nontrivial handoff when the runtime supports it. Review rigor scales independently from orchestration weight.
-- **One-shot momentum** — the next session gets a complete safe execution horizon, milestone-level outcome ladder, verification loop, and hard stop conditions. It keeps going after each green milestone instead of stopping for a recap.
-- **Structure before detail** — substantial product and feature work starts with a minimal working architecture or end-to-end walking skeleton, then expands the highest-value slices. Narrow work stays narrow and reuses the existing design.
+- **Two deliverables, always** — the handoff file and one exact closing sentence, in non-interactive, scheduled, and subagent runs too. The file exists before any question is asked (`Status: DRAFT` while one is open); the closing sentence is the file's last line and the session's last output, with nothing after it.
+- **Four evidence classes** — every load-bearing claim is classified exactly `Observed`, `Derived`, `Volatile`, or `Unknown` (no synonyms), and every path resolves from the repository root or is given as an absolute path.
+- **Durable by default** — nothing load-bearing lives only in chat; a gated draft goes to a named, untracked local file, never left unrecorded.
+- **Momentum checkpoint** — the exact stop point, next concrete move, active or background lanes, and a do-not-redo boundary, so the receiving session resumes instead of re-investigating.
+- **Least-sufficient tier routing** — every lane routes to FAST, BALANCED, or FRONTIER by model family, not model ID, unless a real catalog is cited (`~/.codex/models_cache.json` for Codex; Claude Code exposes none).
+- **One human round, then finish** — at most one round of one to three qualifying questions. An unanswered choice is recorded as deferred by absence, with its option-preserving default and revisit trigger, so scheduled and subagent runs never stall.
+- **Capability discovery, not installation** — Baton enumerates skills from `~/.claude/skills` and `.claude/skills` (Claude Code) or `~/.agents/skills` and `.agents/skills` (Codex), ranks access paths, and recommends a missing option for the human to approve. It never installs or authorizes anything itself.
+- **`DIRECT` or `LEAN`, never heavier by default** — one context, or a capable main model plus one to three bounded workers. Escalating past that requires naming a concrete coordination failure neither shape can manage.
+- **A mechanical check before every emit** — Step 8 runs an inline `bash` block, or `evals/check.sh` when the repo has it, against the written file and fixes every FAIL before the closing sentence goes out.
 
 Every handoff ends with one unambiguous sentence:
 
@@ -26,7 +22,7 @@ Every handoff ends with one unambiguous sentence:
 
 ## Install
 
-Baton is a single Markdown skill file. Install the same file globally for Codex, Claude Code, or both.
+Baton is a single Markdown skill file. Install the same file globally for Codex, Claude Code, or both. Baton is tested on Claude Code and OpenAI Codex CLI; other agents that read a skills directory may work, since the file is plain Markdown with YAML frontmatter, but they're untested.
 
 ### Codex (global — every project)
 
@@ -36,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/shanemhamilton/baton/main/skills/ba
   -o ~/.agents/skills/baton/SKILL.md
 ```
 
-Or per-project: put it at `.agents/skills/baton/SKILL.md` inside the repo.
+Codex discovers skills under `$HOME/.agents/skills` and a repo's own `.agents/skills`. Or per-project: put the file at `.agents/skills/baton/SKILL.md` inside the repo.
 
 ### Claude Code (global — every project)
 
@@ -57,58 +53,65 @@ cp -r baton/skills/baton ~/.agents/skills/
 cp -r baton/skills/baton ~/.claude/skills/
 ```
 
-Run either copy command or both. The skill is plain Markdown with YAML frontmatter, so it also works with other agents that read a `skills/` directory.
+Run either copy command or both.
 
 ---
 
-## Use
+## Method
 
-At the end of a session — or when context is about to compact, or you're switching machines — invoke the installed skill:
+Invoke the installed skill at the end of a session, when context is about to compact, or when switching machines:
 
 - **Codex:** `$baton`
 - **Claude Code:** `/baton`
 
-Or say “hand this off” / “I'm running low on context, write a handoff.” Baton will:
+Or say "hand this off" / "I'm running low on context, write a handoff." Baton runs eight steps:
 
-1. Reconstruct the objective, definition of done, complete material progress, exact continuity boundary, and remaining obligations.
-2. Refresh live repository, tracker, lock, runtime, and external state, then classify load-bearing claims as observed, derived, volatile, or unknown.
-3. Pause if one to three human-owned decisions would materially change the outcome or useful one-shot horizon; the human can answer, give feedback, or explicitly defer to an option-preserving boundary. Re-run the gate until clear; otherwise continue without interruption.
-4. Discover and rank relevant installed and installable skills, plugins, tools, workers, apps, and MCP connectors in the receiving Claude or Codex runtime.
-5. Research provider-primary and runtime-catalog options before accepting a lower-efficiency path; ask the human to install/connect the optimal relevant missing option or explicitly defer to a fallback.
-6. Assign every execution lane to its lowest sufficient model tier: Haiku-class/fast for deterministic legwork, Sonnet-class/balanced for bounded coding and analysis, and frontier only with a written lower-tier insufficiency case.
-7. Prefer capable-model orchestration for delegable work, explicitly evaluating `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific installed skills.
-8. Choose the most efficient adequate execution shape and explain what would justify changing it at startup.
-9. Choose compact, standard, or governed document depth so narrow work does not inherit orchestration or evidence theater.
-10. Define a long one-shot continuation mission, including a walking skeleton first when the work needs new structure.
-11. Run a contradiction-seeking pass and right-sized fresh independent challenge.
-12. Write `docs/handoffs/handoff-<timestamp>.md`.
-13. Emit the single `Read <file> and do ...` sentence to paste into the next session.
+1. **Reconstruct the mission** — the objective and why settled decisions matter, the Definition of Done as observable criteria, the execution horizon, and the hard stops.
+2. **Establish live state** — refresh git (or file-level state in a non-git tree), worktrees, locks, and runtime state. On low context, write the Section 0 spine and Live Truth from live state alone, mark the rest `Unknown`, and finish.
+3. **Human Leverage Gate** — write the file first, with `Status: DRAFT — awaiting human answer` while a question is open; ask at most one round of one to three qualifying questions; then finish. An unanswered choice becomes deferred by absence with its option-preserving default and revisit trigger.
+4. **Capabilities and shape** — enumerate the receiving runtime's actual skills, tools, subagents, and connectors; rank access paths; recommend a missing option and ask, never install it; choose `DIRECT` (one context) or `LEAN` (a capable main model plus one to three bounded workers).
+5. **Design the longest safe one-shot run** — an outcome ladder (boot, confirm structure, expand, verify, challenge, close), not a script.
+6. **Challenge** — audit every load-bearing claim, hunt for the strongest contradiction, and send nontrivial work to a fresh read-only challenger.
+7. **Write the document** — one template, one of three depth labels.
+8. **Check, then emit** — run the inline check block, or `evals/check.sh` when present, fix every FAIL, then emit the closing sentence as the only output.
 
 ---
 
-## What's in a Baton handoff
+## The handoff template
 
-Narrow, low-uncertainty work uses a compact six-section variant. Standard and governed handoffs use the fuller structure below, expanding evidence only when risk and coordination needs earn it.
+One template, one of three soft-ceiling depths: `COMPACT` (80 lines, for narrow low-uncertainty work), `STANDARD` (200 lines), or `GOVERNED` (320 lines).
 
-| Section | Purpose |
+| Section | Contents |
 |---|---|
-| **0. Receiving Session Contract** | Ranked capability/MCP activation · model-assignment matrix · missing-tool install decision · efficient execution · continuity boundary · one-shot horizon · hard stops |
-| 1. Objective | What we're accomplishing and why |
-| 2. Definition of Done | Verifiable acceptance criteria |
-| 3. Current Status | Done/verified · done/unverified · in-progress · do-not-redo boundary · active/background work · not-started · working tree |
-| 4. Truth Ledger & Required Reading | Evidence classes · volatile refreshes · paths + why + what to inspect |
-| 5. Key Decisions | Settled or deferred human/technical choices + rationale and revisit triggers |
-| 6. Architecture / Walking Skeleton | Existing boundaries · first structural proof · value-ordered expansion |
-| 7. Verification Loop | Exact checks and what each proves or cannot prove |
-| 8. Questions, Risks & Hard Stops | What truly requires the user, external state, or a safety gate |
-| 9. Continuation Mission | Full safe one-shot target · concrete start · keep-going and stop rules |
-| 10. Later Horizons | Outcome-level work intentionally outside this session |
+| **0. Launch Contract** | Main directive · document depth · status · execution (`DIRECT`/`LEAN`) · capability activation · recommended install/connect · model routing · human decision state · one-shot horizon · review tier and challenge · boot refresh · hard stops and authority · owning repository |
+| 1. Outcome and Done | Objective and why · observable acceptance criteria |
+| 2. Live Truth | Status · momentum checkpoint · working state · claim table (`Observed`/`Derived`/`Volatile`/`Unknown`) · read first |
+| 3. Decisions and Structure | Settled and deferred decisions · first structural milestone |
+| 4. Verification | Smallest decisive check set, and what it does and doesn't prove |
+| 5. Risks and Hard Stops | Blocker, owner, evidence needed, whether it blocks now |
+| 6. Continuation Mission | Start by · continue through · keep going until |
+
+`STANDARD` adds a delegation map, per-decision detail with rejected alternatives, and a later-horizons section. `GOVERNED` adds separate truth and domain reviewers with their findings, plus recovery or rollback evidence.
+
+---
+
+## Evals
+
+`evals/check.sh` runs the nine mechanical checks in Step 8 — file present, no leftover `DRAFT` line, required fields, exactly one evidence class per claim, cited paths resolve, closing sentence present, depth ceiling, model-identifier provenance, and secrets — against any handoff file. Flags: `--root <repo-root>` resolves relative paths against a different repository, and `--baseline` replays the looser profile used for documents written before the checker existed.
+
+`evals/replay.sh`, `evals/dedupe-corpus.sh`, and `evals/run-scenario.sh` support Baton's own regression suite over a corpus of real handoffs and generated scenarios.
+
+To check any handoff in any repo, either copy the Step 8 block from `skills/baton/SKILL.md` and run it directly, or run:
+
+```bash
+bash /path/to/baton/evals/check.sh --root <repo-root> <handoff.md>
+```
 
 ---
 
 ## Attribution
 
-Baton is a derivative of the **handoff** skill from [**metaswarm**](https://github.com/dsifry/metaswarm) by **Dave Sifry** (MIT License). The core self-contained handoff structure and exact closing-sentence contract come from metaswarm; Baton adds a pre-finalization human leverage gate with explicit defer semantics, comprehensive momentum preservation, capability and MCP activation planning, mandatory least-sufficient model assignment, efficient capable-model orchestration, an evidence-led adversarial review spine, a long one-shot continuation mission, and architecture/walking-skeleton-first guidance for substantial product work. Metaswarm remains a supported choice when its coordination and governance machinery is justified. Full detail in [`NOTICE`](./NOTICE). Grateful thanks to Dave and the metaswarm project.
+Baton is a derivative of the **handoff** skill from [**metaswarm**](https://github.com/dsifry/metaswarm) by **Dave Sifry** (MIT License). The core self-contained handoff structure and exact closing-sentence contract come from metaswarm; Baton adds a human leverage gate with deferred-by-absence, four evidence classes with root-resolved paths, least-sufficient tier routing, capability activation with recommend-and-ask, one template with three depth labels, `DIRECT`/`LEAN` execution shapes, a mechanical Step 8 check, and harness-agnostic generalization tested on Claude Code and Codex. Full detail in [`NOTICE`](./NOTICE). Grateful thanks to Dave and the metaswarm project.
 
 ## License
 
