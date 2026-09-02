@@ -1,5 +1,6 @@
 ---
 name: baton
+license: MIT
 description: Write one self-contained, evidence-backed handoff that preserves every important result, decision, work-in-progress boundary, and next move, then end with one exact "Read XXX.md and do YYY." sentence. Refresh live truth; surface human-owned decisions; rank the receiving Claude or Codex runtime's skills, plugins, tools, subagents, MCP connectors, and model routes; recommend superior missing options; and queue exact activation and task-to-model plans. Prefer authoritative MCP and capable-model orchestration through efficient-frontier, ponytail, and applicable specialists. Assign every task to the least expensive and fastest reliable model tier; never spend a frontier model on legwork Haiku, Sonnet, or an equivalent efficient route can own. Use when ending or compacting a session, switching machines or sessions, wrapping up, or handing work to a fresh session. Harness- and project-agnostic; preserve all scope and approval gates.
 ---
 
@@ -16,9 +17,9 @@ Treat the handoff as an evidence-backed launchpad, not a frozen transcript or an
 ## Core Rules
 
 1. **Re-ground in live truth.** Verify repository, tracker, runtime, lock, and external state before recording it. Mark facts, inferences, volatile claims, and unknowns distinctly.
-2. **Leave no important work behind.** Sweep the full session, working state, delegated work, and relevant external systems. Capture every material completed result, unverified result, work in progress, pending change, decision and rationale, failed approach worth not repeating, artifact, blocker, and remaining obligation. Summarize operationally; do not dump the transcript.
+2. **Leave no important work behind.** Sweep the full session, working state, delegated work, and relevant external systems. Capture every material completed result, unverified result, work in progress, pending change, decision and rationale, failed approach worth not repeating, artifact, blocker, and remaining obligation. Summarize operationally; do not dump the transcript. Anything the handoff calls done or delivered exists on disk, in a tracker, or in a commit or PR body; a chat-only mention is not a record. When publication is gated, write the draft to a local untracked file and name that path.
 3. **Preserve momentum exactly.** Record the exact stopping point, safest next concrete move, active processes or actors, dirty/recovery state, and what must not be rediscovered or redone. The receiving session refreshes volatile facts, then continues from that boundary instead of restarting the investigation or re-litigating settled decisions.
-4. **Discover, rank, and queue the best capabilities.** Inspect the actual Claude, Codex, or other receiving runtime for relevant skills, plugins, tools, subagents, apps, and connectors instead of relying only on project settings or remembered inventories. Rank usable and installable paths by end-to-end efficiency, task coverage, provenance, reliability, permissions, auditability, and context overhead. Prefer an available, authenticated, authoritative MCP connector for the system it exposes. If the best relevant option is not installed or connected, research current availability and ask the human to install or authorize it; if deferred, preserve the best verified fallback. Queue exact startup use and fallbacks in the handoff, with special attention to `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and any more specific efficiency or domain skill that is available and applicable.
+4. **Discover, rank, and queue the best capabilities.** Inspect the actual Claude, Codex, or other receiving runtime for relevant skills, plugins, tools, subagents, apps, and connectors instead of relying only on project settings or remembered inventories. Rank usable and installable paths by end-to-end efficiency, task coverage, provenance, reliability, permissions, auditability, and context overhead. Prefer an available, authenticated, authoritative MCP connector for the system it exposes. If the best relevant option is not installed or connected, research current availability and ask the human to install or authorize it; if deferred, preserve the best verified fallback. Queue exact startup use and fallbacks in the handoff, with special attention to `efficient-frontier`, `ponytail`, and any more specific efficiency or domain skill that is available and applicable.
 5. **Right-size every model assignment.** Assign each task or lane to the least expensive, fastest available model tier that can complete it reliably. Keep frontier models on architecture, prioritization, ambiguity, consequential risk, integration, synthesis, and final review. Never use a frontier model for search, inventory, extraction, summarization, log reduction, test execution, formatting, or bounded mechanical coding that an efficient route such as Claude Haiku/Sonnet or the equivalent Codex fast/balanced tier can perform. Every frontier execution assignment requires a written exception explaining why a lower tier is insufficient.
 6. **Choose the most efficient adequate execution shape.** Account for coordination overhead, main-model opportunity cost, dependency structure, risk, and available native mechanisms. Do not default to maximum fan-out or heavy framework state merely because it is installed.
 7. **Keep an adversarial spine.** Use evidence checks, contradiction-seeking, and fresh independent challenge in proportion to risk. Never treat an agent's confidence as proof.
@@ -29,18 +30,20 @@ Treat the handoff as an evidence-backed launchpad, not a frozen transcript or an
 
 ## Output Contract
 
-After the Human Leverage Gate is cleared, produce exactly two deliverables:
+Produce exactly two deliverables. A session never ends without both, including non-interactive, scheduled, and subagent runs.
 
-1. **One handoff document** at `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md`. Create the directory when needed. Make the document compact enough to orient quickly and complete enough to operate without the prior chat.
-2. **One closing sentence**, with nothing after it, using the literal path and an executable mission:
+1. **One handoff document** at `docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md`. Create the directory when needed. Write the file **before** asking the human anything; a pending question changes what the file says, never whether it exists. Make the document compact enough to orient quickly and complete enough to operate without the prior chat. The document's last line is the closing sentence itself, so the mission survives even if the chat does not.
+2. **One closing sentence**, with nothing after it, quoting the last line of the file:
 
    ```text
    Read docs/handoffs/handoff-2026-06-17-1432.md and do the continuation mission through its stop conditions, starting by establishing the tested CLI walking skeleton described there.
    ```
 
-Use a shorter `Read ... and do ...` form only when the entire remaining task is genuinely narrow. Never end with “continue the work,” “follow the plan,” or another vague theme.
+Use a shorter `Read ... and do ...` form only when the entire remaining task is genuinely narrow. Never end with “continue the work,” “follow the plan,” or another vague theme. In a multi-repository or worktree session, use the absolute path and name the owning repository in Section 0.
 
-An interim human-decision pause is **not a completed handoff** and is the only exception to the two-deliverable contract. Ask the decision questions and stop. Do not write or present the final handoff document or closing sentence until the human answers or explicitly defers each qualifying human-owned choice.
+Never put credentials, tokens, session cookies, or authentication state into the file. Cite absolute paths only where the receiver needs them.
+
+An interim human-decision pause (Step 3) delays finalizing, not writing. While a question is open the file carries the line `Status: DRAFT — awaiting human answer` in Section 0; finalizing removes it. If no answer can arrive, Step 3's terminator applies and both deliverables are still produced.
 
 ## Method
 
@@ -97,11 +100,13 @@ When one or more choices qualify:
 
 1. Complete all safe read-only preparation that can sharpen the decision.
 2. Ask only the one to three highest-leverage questions. For each, state why it matters, the practical effect of the viable options, the recommended default, and exactly what **defer** would mean.
-3. Stop before writing or presenting the final handoff document or closing sentence. Let the human answer, revise the options, or explicitly defer.
-4. Classify the response explicitly. An **answer** settles the choice for the stated one-shot horizon. “Use your recommendation” counts as an answer only when the recommended option and its horizon are explicit. A **defer** intentionally leaves the choice open and must name a safe boundary plus revisit trigger. Partial or ambiguous responses require a concise follow-up; silence is never a defer.
+3. Write the handoff file first with `Status: DRAFT — awaiting human answer` in Section 0, then ask. Present nothing as final until the human answers, revises the options, or explicitly defers.
+4. Classify the response explicitly. An **answer** settles the choice for the stated one-shot horizon. “Use your recommendation” counts as an answer only when the recommended option and its horizon are explicit. A **defer** intentionally leaves the choice open and must name a safe boundary plus revisit trigger. Partial or ambiguous responses get one concise follow-up within the same round. Silence is not an answer; the terminator below handles it.
 5. If answered, record the result as an **Observed human decision** and resume from the now-settled execution horizon.
 6. If deferred, record who deferred it and the concrete revisit trigger. A recommendation is not authorization: use a recommended default only when existing authority permits it **and** it is option-preserving, low-cost to reverse, and does not prejudice the eventual outcome, architecture, or data ownership. Otherwise narrow the continuation mission to the safe work that ends before the decision boundary.
-7. Re-run this gate after each response, whenever later capability research, framework, architecture, evidence, or adversarial analysis reveals a new qualifying choice, and immediately before finalizing the handoff. The gate is clear only when every qualifying choice is answered or explicitly deferred.
+7. Re-run this gate whenever later capability research, framework, architecture, evidence, or adversarial analysis reveals a new qualifying choice, and once immediately before finalizing the handoff, but never open a second question round; a choice discovered after the round is recorded as deferred by absence. The gate is clear when every qualifying choice is answered, explicitly deferred, or deferred by absence.
+
+**Terminator.** Ask at most one round of one to three questions, once. If the session is non-interactive (`claude -p`, `codex exec`, a scheduled run), if you are running as a subagent with no channel to the human, or if the round produces no answer, record every unresolved choice in Section 0 as **deferred by absence** with its option-preserving default and revisit trigger, remove the DRAFT line, and finalize both deliverables. A blocked handoff is a failed handoff.
 
 Use this compact interim form so the human can choose, give free-form feedback, or defer:
 
@@ -141,11 +146,11 @@ If a higher-ranked relevant option exists but is not installed or connected, **a
 
 Use an available, authenticated MCP connector as the default path to the external system it owns when it provides the required read or action. This usually avoids browser choreography, lossy copy/paste, and custom API glue. Fall back to the next most direct verified mechanism when the connector lacks the needed operation, is unauthenticated, or would cross an authority boundary. During handoff creation, use relevant read-only connectors to refresh load-bearing external state when permitted.
 
-Build a **capability activation plan** for the receiving session. For each consequential capability, record its rank, verified name and source, installed/authenticated state in the receiving harness, what it will do, the first milestone that uses it, the exact invocation or selection mechanism when known, and a graceful fallback. Explicitly evaluate `$efficient-frontier` for capable-model orchestration, `$ponytail` or `ponytail:ponytail` for the smallest correct implementation, and any more specific installed skill or connector that improves the mission. Queue them when applicable; do not list them decoratively. The receiver must activate the queued skills before task work and use each planned connector at its first relevant operation unless boot-time evidence invalidates it, in which case it records the substitution and continues.
+Build a **capability activation plan** for the receiving session. For each consequential capability, record its rank, verified name and source, installed/authenticated state in the receiving harness, what it will do, the first milestone that uses it, the exact invocation or selection mechanism when known, and a graceful fallback. Explicitly evaluate `efficient-frontier` for capable-model orchestration, `ponytail` for the smallest correct implementation, and any more specific installed skill or connector that improves the mission. Name skills by bare name; record an invocation only for the receiving harness and only after verifying it there (`/name` or the Skill tool in Claude Code, `$name` in Codex, plugin-namespaced forms such as `ponytail:ponytail` where the harness lists them). Queue them when applicable; do not list them decoratively. The receiver must activate the queued skills before task work and use each planned connector at its first relevant operation unless boot-time evidence invalidates it, in which case it records the substitution in the handoff or the commit message and continues.
 
 Run the **Model Efficiency Gate** before selecting the execution shape:
 
-1. Discover the model routes the receiving Claude, Codex, or other harness actually exposes. Treat exact model IDs, prices, and availability as volatile; resolve them at handoff creation when possible and require a boot-time refresh.
+1. Name a model route only from a mechanism you can point at. Codex exposes its catalog in `~/.codex/models_cache.json` (slug, display name, description). Claude Code exposes no route catalog, so name the model family (Haiku-class, Sonnet-class, frontier) and let the receiver resolve it. Record the source next to every route and tag the row `Volatile`. If no mechanism exists, write `route: unknown` rather than a plausible-looking ID. Treat IDs, prices, and availability as volatile and require a boot-time refresh.
 2. Classify every execution lane by the lowest capability tier that can meet its accuracy, context, tool-use, and risk requirements:
    - **FAST / ECONOMY** — deterministic or easily checked legwork: repository and web search, inventory, document extraction, classification, formatting, test execution, log reduction, and simple low-risk transformations. Prefer the current Claude Haiku-class or Codex fast/economy route.
    - **BALANCED / WORKHORSE** — bounded implementation, refactors, debugging from a known reproduction, focused analysis, test repair, and ordinary review. Prefer the current Claude Sonnet-class or Codex balanced coding route.
@@ -174,7 +179,7 @@ Before selecting `DIRECT` for nontrivial work with a capable main model, state w
 - Is Metaswarm already usable here, or is setup cost part of the justified horizon?
 - Do the parallelism, duration, governance, and collision risks repay that overhead?
 
-If those answers are weak, choose `LEAN` or `STRUCTURED`. Never run `/setup` just to make a handoff look complete.
+If those answers are weak, choose `LEAN` or `STRUCTURED`. Never run Metaswarm's setup (`/metaswarm:setup` in Claude Code, or its Codex equivalent) just to make a handoff look complete.
 
 Record the chosen framework or native mechanism, verified invocation if known, agent/runtime constraints that matter, and a graceful fallback. Keep the inventory task-relevant: do not pin every possible model or list tools with no planned use. Name a specialist, connector, tool, skill, or model only when verified and consequential; otherwise state the required capability and let the receiving runtime resolve it.
 
@@ -226,13 +231,26 @@ A high-risk `DIRECT` repair may need `GOVERNED` evidence; a broad but reversible
 
 Keep delegation/framework detail proportional: a `DIRECT` handoff needs no deployment theater; a `LEAN` handoff may need a short ownership table; a `METASWARM` handoff should reference its verified native plan/state rather than duplicating it.
 
-### Step 8 — Verify and emit the closing sentence
+### Step 8 — Check the file, then emit the closing sentence
 
-Run the self-check, re-read the written file, then emit exactly one closing sentence. Make the first move concrete, but make the mission horizon clear:
+Run these checks against the written file before emitting anything, and fix every FAIL first. If the project ships `evals/check.sh` from the Baton repository, run `bash evals/check.sh --root <repo-root> <file>` instead. When no shell is available, perform each check by reading and say so in Section 0.
 
-```text
-Read docs/handoffs/<file>.md and do the continuation mission through its stop conditions, starting by <first concrete move as a gerund phrase>.
+```bash
+f=docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md
+test -s "$f" || echo "FAIL missing file"
+grep -qi 'Status: DRAFT' "$f" && echo "FAIL draft line still present"
+for k in 'Document depth:' 'Human decision state:' 'Continuation Mission'; do grep -q "$k" "$f" || echo "FAIL missing $k"; done
+grep -oE '`[^` ]+`' "$f" | tr -d '`' | grep -E '/|\.[a-z]+$' | grep -vE '^(<|https?:|docs/handoffs/|origin/|upstream/|refs/)' \
+  | sed -E 's/:[0-9]+(-[0-9]+)?$//' | sort -u | while read -r p; do test -e "${p/#\~/$HOME}" || echo "FAIL path not found: $p"; done
+tail -n 1 "$f" | grep -qE "^\**Read .*$(basename "$f").* and do .+\.\**$" || echo "FAIL last line is not the closing sentence naming this file"
+grep -nE '\|[[:space:]]*(Believed|Stale|Assumed|Inferred)[[:space:]]*\|' "$f" && echo "FAIL class word outside Observed/Derived/Volatile/Unknown"
 ```
+
+Then re-read the file once as the receiver would, and emit the last line of the file as the only output, with nothing after it. Make the first move concrete and the mission horizon clear.
+
+✅ `Read docs/handoffs/handoff-2026-06-17-1432.md and do the continuation mission through its stop conditions, starting by running the failing payments test.` — and the session ends there.
+
+❌ The same sentence followed by “I've written the handoff covering…” — trailing text breaks the contract even when the sentence itself is correct.
 
 ## Compact Handoff Template
 
@@ -244,6 +262,9 @@ Use this instead of the standard template for `COMPACT` depth. Omit empty option
 **Date:** <YYYY-MM-DD HH:mm> · **Repo/branch:** `<absolute path>` / `<branch>`
 
 ## 0. Launch Contract
+> **Main directive:** Own this as the primary execution session. Re-ground volatile facts without repeating settled work, then keep working through the Continuation Mission until Definition of Done or a stated hard stop. Do not stop because one step finishes.
+
+- **Document depth:** COMPACT
 - **Execution:** <shape and native mechanism>; <one-sentence right-sizing reason>
 - **Capability activation:** <ranked skills/plugins/tools/MCP connectors to load or use at boot, first use, and fallback; include efficient-frontier and ponytail when available/applicable>
 - **Model routing:** <each lane → FAST/Haiku-class, BALANCED/Sonnet-class, or FRONTIER; exact available route, escalation trigger, and any justified frontier exception>
@@ -280,6 +301,9 @@ Use this instead of the standard template for `COMPACT` depth. Omit empty option
 - **Start by:** <one concrete move>
 - **Continue through:** <short outcome ladder>
 - **Keep going until:** <Definition of Done or named hard stop>
+
+---
+Read docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md and do <the continuation mission>, starting by <first concrete move as a gerund phrase>.
 ````
 
 ## Standard / Governed Handoff Template
@@ -293,7 +317,9 @@ Use this instead of the standard template for `COMPACT` depth. Omit empty option
 > **Main directive:** Own this as the primary execution session. Activate the queued capability plan, re-ground volatile facts without repeating settled work, use the selected efficient mechanism, and keep working through the Continuation Mission until Definition of Done or a stated hard stop. Do not stop merely because one milestone or delegated lane finishes.
 
 - **Selected execution shape:** <DIRECT | LEAN | STRUCTURED | METASWARM>
+- **Status:** <omit when final; while a human question is open: Status: DRAFT — awaiting human answer>
 - **Document depth:** <STANDARD | GOVERNED; why COMPACT is insufficient>
+- **Owning repository:** <absolute path when the session spans repositories or worktrees; omit otherwise>
 - **Framework/native mechanism:** <verified invocation/tooling, or capability plus startup fallback>
 - **Why this is the most efficient adequate shape:** <dependency, collision, risk, duration, coordination overhead, and main-model opportunity-cost evidence>
 - **Human decision state:** <none needed | one entry per choice: answered—decision, horizon, and source; deferred—decision, option-preserving default or safe boundary, and revisit trigger>
@@ -310,7 +336,7 @@ Use this instead of the standard template for `COMPACT` depth. Omit empty option
 |---|---|---|---|---|
 | <tier; MCP connector, skill, plugin, tool, worker/model route> | <provider/source/date; installed/authenticated state in Claude or Codex> | <specific role and milestone> | <exact invocation, install/connect decision, or selection> | <next direct verified mechanism> |
 
-Include only capabilities with a real job. Rank and queue authoritative MCP connectors first, capable-model orchestration through `$efficient-frontier` when available/applicable, `$ponytail` or `ponytail:ponytail` for minimum correct implementation, and more specific installed skills before generic or custom work. If the optimal relevant path is missing, record the researched Claude/Codex install recommendation, human answer, and fallback.
+Include only capabilities with a real job. Rank and queue authoritative MCP connectors first, capable-model orchestration through `efficient-frontier` when available/applicable, `ponytail` for minimum correct implementation, and more specific installed skills before generic or custom work. If the optimal relevant path is missing, record the researched Claude/Codex install recommendation, human answer, and fallback.
 
 ### Model assignment matrix
 
@@ -402,6 +428,9 @@ Expected: <what each command proves and what it does not prove>.
 
 ## 10. Later Horizons
 <Work intentionally outside this one-shot horizon. Keep this outcome-level, not an exhaustive speculative checklist.>
+
+---
+Read docs/handoffs/handoff-<YYYY-MM-DD-HHmm>.md and do the continuation mission through its stop conditions, starting by <first concrete move as a gerund phrase>.
 ````
 
 ## Final Self-Check
@@ -416,7 +445,7 @@ Expected: <what each command proves and what it does not prove>.
 - [ ] Before accepting a CLI, browser, manual, or custom path, did the author research better current options in the receiving Claude/Codex catalog and provider-primary sources?
 - [ ] If the optimal relevant connector/plugin is available but missing, did the author recommend its receiving-harness-specific installation, disclose permissions/trust and efficiency tradeoffs, obtain an answer or explicit defer, and preserve the fallback?
 - [ ] Are authoritative MCP connectors preferred for the systems they expose, with authentication/authority limits and non-MCP fallbacks represented honestly?
-- [ ] Were `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and more specific available skills explicitly evaluated and queued when applicable rather than merely named?
+- [ ] Were `efficient-frontier`, `ponytail`, and more specific available skills explicitly evaluated and queued when applicable rather than merely named?
 - [ ] Does every nontrivial execution lane have a verified FAST, BALANCED, or FRONTIER assignment using the least expensive and fastest tier that can complete it reliably?
 - [ ] Are Haiku-class/fast routes assigned deterministic legwork and Sonnet-class/balanced routes assigned bounded coding and analysis whenever those routes are sufficient and available?
 - [ ] Is every frontier execution assignment limited to judgment-bearing work and accompanied by concrete evidence that FAST and BALANCED are insufficient?
@@ -433,6 +462,7 @@ Expected: <what each command proves and what it does not prove>.
 - [ ] Are local proof, external proof, uncertainty, rollback/recovery, dirty state, locks, and active actors represented honestly?
 - [ ] Are dependencies, write ownership, review points, authority boundaries, and hard stops clear without excessive dispatch boilerplate?
 - [ ] Does the closing sentence name the exact file, full continuation mission, and concrete starting move?
+- [ ] Did the Step 8 checks pass on the written file, is the closing sentence its last line, and is no `Status: DRAFT` line left?
 
 ## Anti-Patterns
 
@@ -451,7 +481,7 @@ Expected: <what each command proves and what it does not prove>.
 13. **Vague launch** — “continue the work” or “follow the plan” without a concrete starting move, outcome ladder, verification loop, and stop conditions.
 14. **Transcript dump** — copying chat history instead of synthesizing operational truth and decisions.
 15. **Frontier legwork** — spending a frontier model on search, inventory, extraction, summarization, logs, test execution, formatting, or bounded mechanical work that a verified FAST or BALANCED route can own.
-16. **Decorative capability queue** — naming MCP, `$efficient-frontier`, `$ponytail`, or another skill without assigning its first real use, startup action, and fallback.
+16. **Decorative capability queue** — naming MCP, `efficient-frontier`, `ponytail`, or another skill without assigning its first real use, startup action, and fallback.
 17. **Progress amnesia** — capturing the current plan but omitting completed side work, the exact stop point, active/background lanes, recovery state, failed approaches, or what must not be redone.
 18. **Installed-is-best bias** — choosing a lower-efficiency path only because it is already configured, without researching and recommending a superior relevant option.
 19. **Harness leakage** — assuming a Claude connector, skill invocation, authentication, or installation path works in Codex, or vice versa, without verifying and recording the receiving runtime's setup.
@@ -466,7 +496,7 @@ Expected: <what each command proves and what it does not prove>.
 - Reference existing plan, tracker, or framework state instead of duplicating it. Live repository and external state outrank persisted summaries.
 - Prefer an available authenticated MCP connector for the system it authoritatively exposes, then fall back to the next direct verified mechanism. A connector never expands authority.
 - Before accepting a lower-ranked access path, research the provider's official connector/MCP options and the receiving Claude or Codex catalog. Recommend the optimal relevant missing option for human installation or authorization and preserve an explicit fallback if deferred.
-- Use capable frontier models as planners, integrators, and reviewers when bounded worker lanes exist. Assign deterministic legwork to Haiku-class/fast routes and bounded coding or analysis to Sonnet-class/balanced routes when sufficient; require a written lower-tier insufficiency case for every frontier execution lane. Apply `$efficient-frontier`, `$ponytail`/`ponytail:ponytail`, and task-specific skills when verified and applicable; queue exact use rather than relying on the receiver to rediscover them.
+- Use capable frontier models as planners, integrators, and reviewers when bounded worker lanes exist. Assign deterministic legwork to Haiku-class/fast routes and bounded coding or analysis to Sonnet-class/balanced routes when sufficient; require a written lower-tier insufficiency case for every frontier execution lane. Apply `efficient-frontier`, `ponytail`, and task-specific skills when verified and applicable; queue exact use rather than relying on the receiver to rediscover them.
 - Use native platform delegation and project tooling before adding persistent orchestration infrastructure. Select Metaswarm only for work whose coordination needs justify it.
 - Capture durable organizational knowledge separately. Baton preserves the transient state and execution contract for this continuation.
 
