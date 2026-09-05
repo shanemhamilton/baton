@@ -26,12 +26,12 @@ Baton's additions over the original:
   - Four named evidence classes — Observed, Derived, Volatile, Unknown, no
     synonyms — applied to every load-bearing claim, plus a requirement that
     every cited path resolve from the repository root or be given absolute.
-  - Least-sufficient tier routing: every execution lane is assigned to a
-    FAST, BALANCED, or FRONTIER model family (not a model ID, unless a real
-    catalog is cited), with a one-sentence insufficiency case for any
-    FRONTIER lane.
-  - Runtime capability activation that enumerates the receiving harness's
-    actual skills, tools, subagents, and connectors, ranks access paths, and
+  - Least-sufficient tier routing for consequential model or delegation
+    choices: FAST, BALANCED, or FRONTIER by family, with provenance for IDs
+    and an insufficiency case for frontier work. Routine choices remain
+    with the receiving runtime.
+  - Runtime capability activation that verifies the receiving harness's
+    material skills, tools, subagents, and connectors, ranks access paths, and
     recommends a missing option for the human to approve — Baton never
     installs or authorizes a capability itself.
   - One handoff template with three soft-ceiling depth labels (COMPACT,
@@ -46,5 +46,11 @@ Baton's additions over the original:
   - Generalization to be harness-agnostic, tested on Claude Code and OpenAI
     Codex CLI, with no hard dependency on any orchestration framework, issue
     tracker, or plugin.
+  - Explicit nonterminal checkpoints, startup reconciliation with current
+    instructions and scoped authority, and conditional artifact-transfer
+    readiness with final receiving-copy verification.
+  - Public synthetic receiver-outcome controls that check useful completion,
+    preservation of unrelated work, and simulated authority boundaries
+    independently of document-format checks.
 
 Grateful thanks to Dave Sifry and the metaswarm project.

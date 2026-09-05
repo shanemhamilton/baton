@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-05
+
+### Added
+
+- Explicit **Baton checkpoint** requests preserve irreplaceable task context without ending the session. Final handoffs recover essential checkpoint facts and refresh current state.
+- Conditional transfer-readiness guidance records essential local artifacts, repository and checkout mappings, verified receiver access, and pending prerequisites.
+- Public synthetic receiver scenarios for interrupted work, state drift, and deferred consequential actions, with independent outcome and boundary checks.
+
+### Changed
+
+- Receiver boot reconciles current instructions, workspace state, action preconditions, and scoped approvals, revisiting only affected decisions.
+- The first action moves into Section 0 with its expected observation and safe fallback. Intent, boundaries, unfinished work, and decision rationale take priority over optional capability and model advice.
+- Independent challengers reconstruct a safe first action from the handoff and available artifacts.
+
+### Fixed
+
+- Both document checkers reject empty required content, absent truth evidence, and a closing citation that points to another file with the same basename. The inline checker returns a real failure status and scans first-action paths in Section 0.
+- Scenario scoring binds the emitted handoff to its actual contents, final message, skill hash and artifact baseline. Failed authors, unchanged preexisting artifacts, retry reuse and file/message mismatches return failure instead of a successful report command.
+- Receiver grading permits legitimate test extensions and additional explanatory metadata, and checks protected state after executing receiver code.
+
+### Verification
+
+- All 18 local regression tests pass across the repository checker, installed inline checker, and author runner. Receiver-grader self-tests cover valid outcomes, preservation failures, and attempted prohibited actions.
+- A fresh-agent synthetic sequence passed through an explicit checkpoint, final handoff, implementation, second handoff, and verification without repeating completed work or changing protected files.
+- Skill validation, shell syntax, site JavaScript syntax, and whitespace checks pass. Independent reviews were completed and their findings resolved.
+- These checks do not establish comparative model performance, cross-harness parity, or real cross-machine transfer reliability.
+
 ## [2.0.1] - 2026-09-02
 
 ### Fixed
@@ -106,7 +133,8 @@ A rewrite of the skill file from 475 lines down to 210.
 - Recommend a missing connector through a human install-or-defer gate, with setup and fallback paths for both Claude and Codex.
 - Route bounded research, mechanical coding, and test execution to cheaper models, while reserving orchestration, synthesis, and review for capable models.
 
-[Unreleased]: https://github.com/shanemhamilton/baton/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/shanemhamilton/baton/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/shanemhamilton/baton/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/shanemhamilton/baton/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/shanemhamilton/baton/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/shanemhamilton/baton/compare/v1.1.0...v1.2.0

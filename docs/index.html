@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Baton — pass the baton, cleanly</title>
-<meta name="description" content="Baton is a portable Claude and Codex handoff skill that preserves progress, ranks MCP capabilities, and assigns every task to the lowest sufficient model tier." />
+<meta name="description" content="Baton is a portable Claude and Codex handoff skill that preserves intent and progress, reconciles changed state, and right-sizes consequential tool and model choices." />
 <meta name="theme-color" content="#0e1116" />
 <meta property="og:title" content="Baton — pass the baton, cleanly" />
-<meta property="og:description" content="Portable Codex and Claude handoffs with complete continuity, ranked MCP discovery, least-sufficient model assignment, and one-shot momentum." />
+<meta property="og:description" content="Portable Codex and Claude handoffs with durable checkpoints, safe continuation, verified transfer readiness, and focused tool and model choices." />
 <meta property="og:type" content="website" />
 <style>
   :root{
@@ -334,27 +334,27 @@
       <div class="card">
         <h3>The rules it encodes</h3>
         <p style="color:var(--muted);margin:10px 0 0">
-          <b style="color:var(--text)">Complete continuity</b> — preserve every important result, decision, active lane, recovery state, exact stop point, next move, and do-not-redo boundary.<br/><br/>
-          <b style="color:var(--text)">Ranked capability activation</b> — inspect each receiving Claude or Codex runtime, rank installed and installable paths, prefer authoritative MCP, and queue each real capability with its first use and fallback.<br/><br/>
-          <b style="color:var(--text)">Better-tool installation</b> — research provider-primary and runtime-catalog options before accepting manual work; ask the human to connect the optimal missing option or explicitly defer.<br/><br/>
-          <b style="color:var(--text)">Least-sufficient models</b> — assign every lane to FAST, BALANCED, or FRONTIER by model family, not model ID unless a real catalog is cited; each FRONTIER lane carries one sentence on why lower tiers are insufficient.<br/><br/>
+          <b style="color:var(--text)">Complete continuity</b> — preserve intent, current boundaries, unfinished work, the next safe move, and decisions with their evidence and revisit conditions. An explicit Baton checkpoint saves essential context while work continues.<br/><br/>
+          <b style="color:var(--text)">Relevant capability activation</b> — verify tools and access paths that affect continuation, with their first use and fallback. Routine inventories never displace the mission.<br/><br/>
+          <b style="color:var(--text)">Transfer readiness</b> — identify essential local artifacts, source and destination locations, and verified access or pending prerequisites when moving machines or checkouts.<br/><br/>
+          <b style="color:var(--text)">Least-sufficient models</b> — route consequential model choices to FAST, BALANCED, or FRONTIER by family with a reason for frontier work; leave routine choices to the receiving runtime.<br/><br/>
           <b style="color:var(--text)">Efficient orchestration</b> — keep frontier models on planning, synthesis, integration, and review while efficient workers execute search, extraction, logs, mechanical coding, and tests.<br/><br/>
-          <b style="color:var(--text)">Adversarial truth</b> — classify load-bearing claims, hunt contradictions, use a fresh challenger, and rerun decisive checks.<br/><br/>
+          <b style="color:var(--text)">Adversarial truth</b> — a fresh challenger reconstructs the first safe action, expected result, and invalidating conditions from the handoff and available artifacts.<br/><br/>
           <b style="color:var(--text)">One-shot momentum</b> — establish a runnable walking skeleton when new structure is needed, then keep expanding and verifying until done or a real hard stop.
         </p>
       </div>
       <div class="doc" aria-label="example Section 0">
 <span class="c">## 0. Launch Contract</span>
-<span class="k">- Execution:</span> <span class="s">LEAN</span>, native delegation
 <span class="k">- Document depth:</span> STANDARD
-<span class="k">- Capability activation:</span> ranked skill/MCP source · efficient-frontier · ponytail
-<span class="k">- Recommended install/connect:</span> optimal missing connector — human defer
-<span class="k">- Model routing:</span> scans→FAST · coding→BALANCED · synthesis→FRONTIER
 <span class="k">- Human decision state:</span> none needed / answered / deferred
 <span class="k">- One-shot horizon:</span> 3 independent evidence checks, then integrate
-<span class="k">- Review tier and challenge:</span> fresh falsification challenger
+<span class="k">- Hard stops and authority:</span> scoped approval, source, and conditions
+<span class="k">- Start by:</span> focused check → expected result → safe fallback
 <span class="k">- Boot refresh:</span> repo, tracker, locks, runtime
-<span class="k">- Hard stops and authority:</span> DoD, approval, or named blocker
+<span class="k">- Reconcile at boot:</span> revise only steps whose premises changed
+<span class="k">- Transfer readiness:</span> verified access or pending prerequisite
+<span class="k">- Review tier and challenge:</span> reconstruct the first safe action
+<span class="k">- Execution:</span> <span class="s">LEAN</span>, when independent lanes help
       </div>
     </div>
   </div>
@@ -428,13 +428,13 @@
 
   // ----- anatomy rows -----
   const SECTIONS=[
-    ['0','Launch Contract','Main directive · document depth · status · execution (DIRECT/LEAN) · capability activation · recommended install/connect · model routing · human decision state · one-shot horizon · review tier and challenge · boot refresh · hard stops and authority · owning repository',true],
+    ['0','Launch Contract','Main directive · depth/status · decision state · permitted horizon · authority · first safe action · boot reconciliation · transfer readiness when needed · challenge findings · optional routing',true],
     ['1','Outcome and Done','Objective and why · observable acceptance criteria'],
     ['2','Live Truth','Status · momentum checkpoint · working state · claim table (Observed/Derived/Volatile/Unknown) · read first'],
-    ['3','Decisions and Structure','Settled and deferred decisions · first structural milestone'],
+    ['3','Decisions and Structure','Settled and deferred decisions · failed approaches and revisit conditions · first structural milestone'],
     ['4','Verification','Smallest decisive check set, and what it does and does not prove'],
     ['5','Risks and Hard Stops','Blocker, owner, evidence needed, whether it blocks now'],
-    ['6','Continuation Mission','Start by · continue through · keep going until'],
+    ['6','Continuation Mission','Continue through · keep going until; first action is in Section 0'],
   ];
   document.getElementById('rows').innerHTML=SECTIONS.map(s=>
     `<div class="row ${s[3]?'zero':''}"><span class="num">${s[0]}</span><span class="nm">${s[1]}</span><span class="ds">${s[2]}</span></div>`

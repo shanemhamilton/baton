@@ -78,10 +78,12 @@ print_summary() {
 }
 
 if [ "$BASELINE" = "1" ]; then
+  SEV_CONTENT=WARN
   SEV_C4=WARN
   SEV_C6=INFO
   SEV_C8=WARN
 else
+  SEV_CONTENT=FAIL
   SEV_C4=FAIL
   SEV_C6=FAIL
   SEV_C8=FAIL
@@ -112,6 +114,12 @@ if [ -z "$ROOT" ]; then
   fi
 fi
 
+if [ ! -d "$ROOT" ]; then
+  emit FAIL C1 "repository root does not exist"
+  print_summary
+  exit 1
+fi
+
 # --- C2: no "Status: DRAFT" line (case-insensitive, ** allowed) ---
 sed 's/\*//g' "$FILE" | grep -inE 'status:[[:space:]]*draft' > "$TMPDIR_CHECK/c2.txt" 2>/dev/null
 if [ -s "$TMPDIR_CHECK/c2.txt" ]; then
@@ -122,31 +130,66 @@ else
   emit PASS C2 "no \"Status: DRAFT\" line found"
 fi
 
-# --- C3: required fields ---
-has_launch_contract=0
-grep -qF "Launch Contract" "$FILE" && has_launch_contract=1
-
-if grep -qF "Document depth:" "$FILE"; then
-  emit PASS C3 "\"Document depth:\" field present"
+# --- C3: meaningful launch fields and continuation (not just matching labels) ---
+# Markdown is deliberately constrained to the skill template, not a general parser.
+field_value() {
+  awk -v key="$1" '
+    {s=$0; gsub(/[*`]/,"",s); sub(/^[ \t>-]* /,"",s); sub(/^[ \t-]+/,"",s)}
+    index(s,key ":")==1 {sub(/^[^:]+:[ \t]*/,"",s); sub(/[ \t]+$/,"",s); print s; exit}
+  ' "$FILE"
+}
+meaningful() {
+  printf '%s\n' "$1" | awk '
+    {s=$0; gsub(/[*`]/,"",s); sub(/^[ \t>-]+/,"",s); sub(/^\[[ xX]\][ \t]*/,"",s); sub(/[ \t]+$/,"",s)}
+    s!="" && s!~/^<[^>]*>$/ && s!~/^(TBD|TODO|N\/A|[.][.][.])$/ {ok=1}
+    END {exit !ok}
+  '
+}
+section_body() {
+  awk -v wanted="$1" '
+    /^#+[ \t]/ {
+      level=match($0,/[^#]/)-1
+      if (inside && level<=start) inside=0
+      if ($0~wanted) {inside=1;start=level}
+      next
+    }
+    inside && $0!~/^[ \t]*(---|```|[|])/ {print}
+  ' "$FILE"
+}
+depth_value=$(field_value 'Document depth')
+case "$depth_value" in
+  COMPACT|STANDARD|GOVERNED) emit PASS C3 "valid Document depth" ;;
+  *)
+    if [ "$BASELINE" = "1" ] && grep -qF 'Launch Contract' "$FILE"; then
+      emit WARN C3 "missing or invalid Document depth"
+    else
+      emit FAIL C3 "missing or invalid Document depth"
+    fi ;;
+esac
+if meaningful "$(field_value 'Human decision state')"; then
+  emit PASS C3 "populated Human decision state"
 else
-  if [ "$BASELINE" = "1" ] && [ "$has_launch_contract" = "1" ]; then
-    emit WARN C3 "\"Document depth:\" field missing on compact (Launch Contract) document"
+  emit FAIL C3 "missing or empty Human decision state"
+fi
+# The objective may be in a compact launch field or the normal Outcome section.
+if meaningful "$(field_value 'Objective')" || meaningful "$(section_body 'Outcome and Done')"; then
+  emit PASS C3 "populated objective"
+else
+  emit "$SEV_CONTENT" C3 "missing or empty objective (Objective field or Outcome and Done section)"
+fi
+for field in 'Start by' 'Keep going until'; do
+  if [ "$field" = 'Start by' ]; then
+    value=$(field_value "$field")
   else
-    emit FAIL C3 "\"Document depth:\" field missing"
+    body=$(section_body 'Continuation Mission')
+    value=$(printf '%s\n' "$body" | sed 's/[*`]//g' | sed -n "s/^[[:space:]-]*$field:[[:space:]]*//p")
   fi
-fi
-
-if grep -qF "Human decision state:" "$FILE"; then
-  emit PASS C3 "\"Human decision state:\" field present"
-else
-  emit FAIL C3 "\"Human decision state:\" field missing"
-fi
-
-if grep -qE '^#+.*Continuation Mission' "$FILE"; then
-  emit PASS C3 "\"Continuation Mission\" heading present"
-else
-  emit FAIL C3 "\"Continuation Mission\" heading missing"
-fi
+  if meaningful "$value"; then
+    emit PASS C3 "populated Continuation Mission $field"
+  else
+    emit "$SEV_CONTENT" C3 "missing or empty Continuation Mission $field"
+  fi
+done
 
 # --- C4: evidence classes ---
 # 4a: every markdown table with a "Class" header column - each data-row cell must be
@@ -163,12 +206,14 @@ END {
     if (lines[i] ~ /^\|/ && is_sep(lines[i]) && lines[i-1] ~ /^\|/) {
       header = lines[i-1]
       n = split(header, cells, "|")
-      class_col = -1
+      class_col = -1; claim_col = -1; evidence_col = -1
       for (c = 1; c <= n; c++) {
         cell = cells[c]
         gsub(/^[ \t]+|[ \t]+$/, "", cell)
         gsub(/\*/, "", cell)
         if (cell == "Class") class_col = c
+        if (cell == "Claim") claim_col = c
+        if (cell == "Evidence") evidence_col = c
       }
       if (class_col == -1) continue
       j = i + 1
@@ -179,13 +224,21 @@ END {
           gsub(/^[ \t]+|[ \t]+$/, "", val)
           gsub(/\*/, "", val)
           if (val != "Observed" && val != "Derived" && val != "Volatile" && val != "Unknown") {
-            print j ":" val
+            print j ":invalid"
+          }
+          claim = cells2[claim_col]; evidence = cells2[evidence_col]
+          gsub(/[ *`\t]/, "", claim); gsub(/[ *`\t]/, "", evidence)
+          if (claim_col>0 && evidence_col>0) {
+            if (claim=="" || evidence=="" || claim~/^<.*>$/ || evidence~/^<.*>$/ ||
+                claim~/^(TODO|TBD)$/ || evidence~/^(TODO|TBD)$/) print j ":empty-truth"
+            else if (val ~ /^(Observed|Derived|Volatile|Unknown)$/) truth=1
           }
         }
         j++
       }
     }
   }
+  if (!truth) print "0:missing-truth"
 }
 ' "$FILE" > "$TMPDIR_CHECK/c4_table.txt"
 
@@ -195,7 +248,13 @@ grep -noE '(\*\*(Believed|Stale|Assumed|Inferred|Confirmed|Reported|Likely|Estim
 
 if [ -s "$TMPDIR_CHECK/c4_table.txt" ]; then
   while IFS=: read -r ln val; do
-    emit "$SEV_C4" C4 "line $ln: invalid evidence class '$val'"
+    if [ "$val" = "missing-truth" ]; then
+      emit "$SEV_CONTENT" C4 "no populated Claim/Class/Evidence row (Unknown with missing-evidence explanation is valid)"
+    elif [ "$val" = "empty-truth" ]; then
+      emit "$SEV_CONTENT" C4 "line $ln: empty claim or evidence"
+    else
+      emit "$SEV_C4" C4 "line $ln: invalid evidence class"
+    fi
   done < "$TMPDIR_CHECK/c4_table.txt"
 fi
 if [ -s "$TMPDIR_CHECK/c4_syn.txt" ]; then
@@ -212,7 +271,7 @@ fi
 # Only inside sections whose heading contains one of the load-bearing section names.
 awk '
 BEGIN {
-  nk = split("Working state|Live Truth|Current Status|Read before acting|Read first|Required Reading|Truth Ledger|Continuation Mission|Start", keys, "|")
+  nk = split("Launch Contract|Working state|Live Truth|Current Status|Read before acting|Read first|Required Reading|Truth Ledger|Continuation Mission|Start", keys, "|")
 }
 { lines[NR] = $0 }
 END {
@@ -325,10 +384,6 @@ while IFS=$'\t' read -r ln tok; do
   stripped=$(echo "$tok" | sed -E 's/:[0-9][0-9,.-]*$//')
 
   case "$stripped" in
-    *docs/handoffs/*) continue ;;
-  esac
-
-  case "$stripped" in
     "~"*) expanded="$HOME${stripped#\~}" ;;
     *) expanded="$stripped" ;;
   esac
@@ -375,12 +430,17 @@ stripped_last=$(echo "$last_line" | sed -e 's/\*//g' -e 's/`//g' -e 's/^[[:space
 
 if [[ "$stripped_last" =~ ^Read[[:space:]]+(.+\.md)[[:space:]]+and[[:space:]]+do[[:space:]]+(.+)\.$ ]]; then
   cited_path="${BASH_REMATCH[1]}"
-  cited_base=$(basename "$cited_path")
-  file_base=$(basename "$FILE")
-  if [ "$cited_base" = "$file_base" ]; then
-    emit PASS C6 "closing sentence present and names this file"
+  case "$cited_path" in
+    "~"*) cited_path="$HOME${cited_path#\~}" ;;
+  esac
+  case "$cited_path" in
+    /*) closing_target="$cited_path" ;;
+    *) closing_target="$ROOT/$cited_path" ;;
+  esac
+  if [ "$closing_target" -ef "$FILE" ]; then
+    emit PASS C6 "closing sentence resolves to this file"
   else
-    emit "$SEV_C6" C6 "closing sentence names '$cited_base', expected '$file_base'"
+    emit "$SEV_C6" C6 "closing sentence resolves to a different or missing file"
   fi
 else
   emit "$SEV_C6" C6 "last non-empty line does not match 'Read <path>.md and do <mission>.'"

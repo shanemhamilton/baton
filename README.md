@@ -4,13 +4,14 @@
 
 > **Website:** https://shanemhamilton.github.io/baton/
 
-- **Two deliverables, always** — the handoff file and one exact closing sentence, in non-interactive, scheduled, and subagent runs too. The file exists before any question is asked (`Status: DRAFT` while one is open); the closing sentence is the file's last line and the session's last output, with nothing after it.
+- **Two deliverables for every final handoff** — the handoff file and one exact closing sentence, in non-interactive, scheduled, and subagent runs too. The file exists before any question is asked (`Status: DRAFT` while one is open); the closing sentence is the file's last line and the session's last output, with nothing after it.
 - **Four evidence classes** — every load-bearing claim is classified exactly `Observed`, `Derived`, `Volatile`, or `Unknown` (no synonyms), and every path resolves from the repository root or is given as an absolute path.
-- **Durable by default** — nothing load-bearing lives only in chat; a gated draft goes to a named, untracked local file, never left unrecorded.
-- **Momentum checkpoint** — the exact stop point, next concrete move, active or background lanes, and a do-not-redo boundary, so the receiving session resumes instead of re-investigating.
-- **Least-sufficient tier routing** — every lane routes to FAST, BALANCED, or FRONTIER by model family, not model ID, unless a real catalog is cited (`~/.codex/models_cache.json` for Codex; Claude Code exposes none).
+- **Checkpoint without ending the session** — an explicit **Baton checkpoint** request saves essential intent, corrections, approval scope, failed approaches, and the next move in an existing task note or an untracked checkpoint. It reads the note back and continues working; there is no automatic checkpoint hook.
+- **Resume against current facts** — preserve unfinished work and decisions, then verify the next action's preconditions. Changed facts reopen only affected steps. Keep still-valid approval and do-not-redo boundaries with their supporting evidence.
+- **Least-sufficient tier routing** — consequential model and delegation choices route to FAST, BALANCED, or FRONTIER by family, with provenance for model IDs. Routine choices stay with the receiving runtime and do not displace intent, boundaries, or unfinished work.
 - **One human round, then finish** — at most one round of one to three qualifying questions. An unanswered choice is recorded as deferred by absence, with its option-preserving default and revisit trigger, so scheduled and subagent runs never stall.
-- **Capability discovery, not installation** — Baton enumerates skills from `~/.claude/skills` and `.claude/skills` (Claude Code) or `~/.agents/skills` and `.agents/skills` (Codex), ranks access paths, and recommends a missing option for the human to approve. It never installs or authorizes anything itself.
+- **Relevant capability discovery** — Baton verifies tools and access paths that affect continuation, and recommends material missing options through the existing human decision gate. It never installs or authorizes anything itself.
+- **Transfer readiness** — a move records essential local artifacts, repository identity, source/destination locations, and verified access or pending prerequisites. A local file or Git clone alone does not prove the receiver has the handoff or uncommitted work.
 - **`DIRECT` or `LEAN`, never heavier by default** — one context, or a capable main model plus one to three bounded workers. Escalating past that requires naming a concrete coordination failure neither shape can manage.
 - **A mechanical check before every emit** — Step 8 runs an inline `bash` block, or `evals/check.sh` when the repo has it, against the written file and fixes every FAIL before the closing sentence goes out.
 
@@ -67,13 +68,15 @@ Invoke the installed skill at the end of a session, when context is about to com
 Or say "hand this off" / "I'm running low on context, write a handoff." Baton runs eight steps:
 
 1. **Reconstruct the mission** — the objective and why settled decisions matter, the Definition of Done as observable criteria, the execution horizon, and the hard stops.
-2. **Establish live state** — refresh git (or file-level state in a non-git tree), worktrees, locks, and runtime state. On low context, write the Section 0 spine and Live Truth from live state alone, mark the rest `Unknown`, and finish.
+2. **Establish live state** — refresh git (or file-level state in a non-git tree), relevant worktrees, locks, and runtime state. Recover surviving task notes when context is low; retain intent, authority, unfinished work, and the next safe move, marking unrecoverable facts `Unknown`. For moves, record essential artifact availability and pending transfer prerequisites.
 3. **Human Leverage Gate** — write the file first, with `Status: DRAFT — awaiting human answer` while a question is open; ask at most one round of one to three qualifying questions; then finish. An unanswered choice becomes deferred by absence with its option-preserving default and revisit trigger.
-4. **Capabilities and shape** — enumerate the receiving runtime's actual skills, tools, subagents, and connectors; rank access paths; recommend a missing option and ask, never install it; choose `DIRECT` (one context) or `LEAN` (a capable main model plus one to three bounded workers).
-5. **Design the longest safe one-shot run** — an outcome ladder (boot, confirm structure, expand, verify, challenge, close), not a script.
-6. **Challenge** — audit every load-bearing claim, hunt for the strongest contradiction, and send nontrivial work to a fresh read-only challenger.
-7. **Write the document** — one template, one of three depth labels.
+4. **Capabilities and shape** — verify capabilities and routing choices that materially affect continuation; use `DIRECT` or `LEAN` when coordination needs to be specified, leaving routine choices to the receiver.
+5. **Design the longest safe one-shot run** — reconcile the next action's preconditions with current instructions and state; revise affected steps, then continue through the permitted outcome ladder.
+6. **Challenge** — a fresh read-only challenger reconstructs the first safe action, expected result, invalidating conditions, and missing information from the handoff and permitted artifacts alone.
+7. **Write the document** — one template with three depth labels; prioritize intent, boundaries, unfinished work, action preconditions, and irreplaceable rationale before optional tool advice.
 8. **Check, then emit** — run the inline check block, or `evals/check.sh` when present, fix every FAIL, then emit the closing sentence as the only output.
+
+To save a material decision while work continues, explicitly request **Baton checkpoint**. This skips the final handoff workflow and closing sentence. A later final handoff consolidates essential checkpoint facts so the receiver does not need the earlier note.
 
 ---
 
@@ -83,23 +86,32 @@ One template, one of three soft-ceiling depths: `COMPACT` (80 lines, for narrow 
 
 | Section | Contents |
 |---|---|
-| **0. Launch Contract** | Main directive · document depth · status · execution (`DIRECT`/`LEAN`) · capability activation · recommended install/connect · model routing · human decision state · one-shot horizon · review tier and challenge · boot refresh · hard stops and authority · owning repository |
+| **0. Launch Contract** | Main directive · depth/status · human decision state · permitted horizon · authority · first action and expected result/fallback · boot reconciliation · owning repository/transfer readiness when relevant · challenge findings · optional capability and routing choices |
 | 1. Outcome and Done | Objective and why · observable acceptance criteria |
 | 2. Live Truth | Status · momentum checkpoint · working state · claim table (`Observed`/`Derived`/`Volatile`/`Unknown`) · read first |
-| 3. Decisions and Structure | Settled and deferred decisions · first structural milestone |
+| 3. Decisions and Structure | Settled/deferred decisions · relevant failed approaches and revisit conditions · first structural milestone |
 | 4. Verification | Smallest decisive check set, and what it does and doesn't prove |
 | 5. Risks and Hard Stops | Blocker, owner, evidence needed, whether it blocks now |
-| 6. Continuation Mission | Start by · continue through · keep going until |
+| 6. Continuation Mission | Continue through · keep going until (first action is in Section 0) |
 
-`STANDARD` adds a delegation map, per-decision detail with rejected alternatives, and a later-horizons section. `GOVERNED` adds separate truth and domain reviewers with their findings, plus recovery or rollback evidence.
+`STANDARD` adds a delegation map when needed, relevant rejected alternatives, and later horizons that guide continuation. `GOVERNED` adds separate truth and domain reviewers with their findings, plus recovery or rollback evidence.
 
 ---
 
 ## Evals
 
-`evals/check.sh` runs the nine mechanical checks in Step 8 — file present, no leftover `DRAFT` line, required fields, exactly one evidence class per claim, cited paths resolve, closing sentence present, depth ceiling, model-identifier provenance, and secrets — against any handoff file. Flags: `--root <repo-root>` resolves relative paths against a different repository, and `--baseline` replays the looser profile used for documents written before the checker existed.
+`evals/check.sh` checks file presence, draft status, populated objective/action/stop fields, evidence rows, cited paths, closing-file identity, depth, model provenance, and secret-like patterns. These are mechanical checks, not proof that claims are true or the receiver will succeed. Flags: `--root <repo-root>` resolves relative paths against a different repository, and `--baseline` replays a looser historical profile.
 
 `evals/replay.sh`, `evals/dedupe-corpus.sh`, and `evals/run-scenario.sh` support Baton's own regression suite over a corpus of real handoffs and generated scenarios.
+
+The committed `evals/fixtures/receiver/` scenarios and `evals/receiver-eval.py` separately evaluate resulting work, preservation of unrelated files, and attempts to cross a simulated approval boundary. Give a fresh receiver only the prepared repository and its closing instruction. Hand-authored controls test the mechanism; supplied author packets support evaluation of skill changes. See [evaluation instructions](evals/README.md) for commands and limitations.
+
+Run the local regression checks without provider calls:
+
+```bash
+python3 evals/test-check.py
+python3 evals/receiver-eval.py self-test
+```
 
 To check any handoff in any repo, either copy the Step 8 block from `skills/baton/SKILL.md` and run it directly, or run:
 
@@ -107,7 +119,9 @@ To check any handoff in any repo, either copy the Step 8 block from `skills/bato
 bash /path/to/baton/evals/check.sh --root <repo-root> <handoff.md>
 ```
 
-### Results (v2.0.0, 2026-09-01)
+### Historical results (v2.0.0–v2.0.1, 2026-09-01–02)
+
+These results apply to v2.0.0–v2.0.1 and their original checks. See the [v2.1.0 changelog](CHANGELOG.md#210---2026-09-05) for verification of the continuation changes above.
 
 Eight eval scenarios (non-interactive human choice, subagent author, low-context compaction, trivial one-file fix, multi-repo worktree, money-path high risk, non-git directory, background lanes), each run with the author model reading only the skill file.
 

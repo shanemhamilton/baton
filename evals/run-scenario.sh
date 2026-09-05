@@ -27,7 +27,8 @@
 #
 # See evals/README.md for what each subcommand does in prose.
 
-set -u
+set -eu
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BATON_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -43,6 +44,10 @@ Usage:
   run-scenario.sh check   <run-id>
 EOF
   exit 2
+}
+
+valid_id() {
+  [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "invalid scenario/run id" >&2; exit 2; }
 }
 
 # meta_get <meta.json> <key> -- prints "" if the key is missing.
@@ -75,6 +80,9 @@ with open(path, "w") as f:
 cmd_prepare() {
   [ $# -eq 3 ] || usage
   scenario="$1"; skill_dir="$2"; run_id="$3"
+  valid_id "$scenario"
+  valid_id "$run_id"
+  skill_dir=$(cd "$skill_dir" && pwd)
 
   scenario_dir="$SCENARIOS_DIR/$scenario"
   [ -d "$scenario_dir" ] || { echo "no such scenario: $scenario_dir" >&2; exit 1; }
@@ -121,9 +129,19 @@ cmd_prepare() {
     echo "could not find 'session in <path>.' in $scenario_dir/prompt.txt" >&2
     exit 1
   fi
+  case "$workdir_orig" in
+    "$scenario_dir"/*) ;;
+    *) echo "scenario workdir must be inside the scenario directory" >&2; exit 1 ;;
+  esac
   suffix="${workdir_orig#"$scenario_dir"}"
   workdir="$run_dir$suffix"
   [ -d "$workdir" ] || { echo "computed workdir does not exist: $workdir" >&2; exit 1; }
+  workdir=$(cd "$workdir" && pwd -P)
+  physical_run=$(cd "$run_dir" && pwd -P)
+  case "$workdir" in
+    "$physical_run"/*) ;;
+    *) echo "computed workdir escapes the run directory" >&2; exit 1 ;;
+  esac
 
   # Install the skill where Codex's project-skill discovery looks for it.
   mkdir -p "$workdir/.agents/skills/baton"
@@ -133,17 +151,37 @@ cmd_prepare() {
   # Rewrite every absolute path pointing into the scenario dir (the workdir
   # sentence, the SESSION.md reference, anything else) to point into the run
   # copy instead, and drop in the real skill path.
-  sed -e "s#$scenario_dir#$run_dir#g" -e "s#<SKILL_PATH>#$skill_path#g" \
-    "$scenario_dir/prompt.txt" > "$run_dir/prompt.txt"
+  python3 - "$scenario_dir" "$run_dir" "$skill_path" <<'PY_PROMPT'
+import pathlib, sys
+source, target, skill = sys.argv[1:]
+prompt = (pathlib.Path(source) / "prompt.txt").read_text()
+(pathlib.Path(target) / "prompt.txt").write_text(prompt.replace(source, target).replace("<SKILL_PATH>", skill))
+PY_PROMPT
 
   skill_sha256=$(shasum -a 256 "$skill_dir/SKILL.md" | awk '{print $1}')
   created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
   python3 -c '
-import json, sys
+import hashlib, json, pathlib, subprocess, sys, time
 (path, scenario, run_id, skill_dir, skill_sha256, workdir, skill_path,
  created_at) = sys.argv[1:]
+def git(*args):
+    result = subprocess.run(["git", "-C", workdir, *args], capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else None
+run_dir = pathlib.Path(path).parent.resolve()
+repo_root = git("rev-parse", "--show-toplevel")
+if repo_root and run_dir not in pathlib.Path(repo_root).resolve().parents:
+    repo_root = None  # a non-Git fixture must not inherit the outer Baton checkout
+initial = {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest()
+           for p in run_dir.glob("**/docs/handoffs/*.md") if p.is_file()}
 data = {
+    "schema_version": 2,
+    "prepared_at_ns": time.time_ns(),
+    "initial_handoffs": initial,
+    "starting_repo": {"root": repo_root,
+                      "head": git("rev-parse", "HEAD") if repo_root else None,
+                      "branch": git("symbolic-ref", "--short", "HEAD") if repo_root else None,
+                      "status_sha256": hashlib.sha256((git("status", "--porcelain") or "").encode()).hexdigest() if repo_root else None},
     "scenario": scenario,
     "run_id": run_id,
     "skill_dir": skill_dir,
@@ -169,6 +207,7 @@ with open(path, "w") as f:
 cmd_codex() {
   [ $# -eq 2 ] || usage
   run_id="$1"; model="$2"
+  valid_id "$run_id"
   run_dir="$RUNS_DIR/$run_id"
   meta="$run_dir/meta.json"
   [ -f "$meta" ] || { echo "no meta.json for run: $run_id (run prepare first)" >&2; exit 1; }
@@ -176,159 +215,158 @@ cmd_codex() {
   workdir=$(meta_get "$meta" workdir)
   prompt_text=$(cat "$run_dir/prompt.txt")
 
+  # Refresh artifact baseline on retries; a previous attempt is now preexisting.
+  python3 - "$meta" "$run_dir" <<'PY_BASELINE'
+import hashlib, json, pathlib, sys
+path, run = map(pathlib.Path, sys.argv[1:])
+meta = json.loads(path.read_text())
+meta["initial_handoffs"] = {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest()
+                            for p in run.glob("**/docs/handoffs/*.md") if p.is_file()}
+path.write_text(json.dumps(meta, indent=2) + "\n")
+PY_BASELINE
+  meta_set "$meta" harness codex model "$model" exit_code pending
   start=$(date +%s)
-  codex exec -m "$model" -C "$workdir" --skip-git-repo-check \
+  # Do not reuse a previous invocation's final message when the author fails.
+  : > "$run_dir/last-message.txt"
+  if codex exec -m "$model" -C "$workdir" --skip-git-repo-check \
     -o "$run_dir/last-message.txt" "$prompt_text" \
-    > "$run_dir/codex.log" 2>&1
-  exit_code=$?
+    > "$run_dir/codex.log" 2>&1; then
+    exit_code=0
+  else
+    exit_code=$?
+  fi
   end=$(date +%s)
   seconds=$((end - start))
 
   meta_set "$meta" harness codex model "$model" exit_code "$exit_code" seconds "$seconds"
 
   echo "codex exit_code=$exit_code seconds=$seconds"
-  echo "--- last message (${run_dir}/last-message.txt) ---"
-  if [ -f "$run_dir/last-message.txt" ]; then
-    cat "$run_dir/last-message.txt"
-  else
-    echo "(no last-message.txt written; see $run_dir/codex.log)"
-  fi
-}
-
-# find_handoff <dir> -- first docs/handoffs/handoff-*.md under <dir>, or "".
-find_handoff() {
-  find "$1" -path '*/docs/handoffs/handoff-*.md' -type f 2>/dev/null | sort | head -1
-}
-
-# closing_sentence_line <file> -- prints "<total_lines>\t<last_nonempty_ln>\t<last_nonempty_text>"
-closing_sentence_line() {
-  awk '
-    { if (NF) { ln = NR; text = $0 } total = NR }
-    END { printf "%d\t%d\t%s\n", total, ln, text }
-  ' "$1"
-}
-
-matches_closing() {
-  # ^\**Read .+\.md and do .+\.\**$ , tolerating a leading/trailing "**"
-  echo "$1" | grep -qE '^\*{0,2}Read .+\.md and do .+\.\*{0,2}$'
+  echo "final message: $run_dir/last-message.txt"
+  return "$exit_code"
 }
 
 cmd_check() {
   [ $# -eq 1 ] || usage
   run_id="$1"
+  valid_id "$run_id"
   run_dir="$RUNS_DIR/$run_id"
-  meta="$run_dir/meta.json"
-  [ -f "$meta" ] || { echo "no meta.json for run: $run_id (run prepare first)" >&2; exit 1; }
+  [ -f "$run_dir/meta.json" ] || { echo "no meta.json for run: $run_id (run prepare first)" >&2; exit 1; }
+  python3 - "$run_dir" "$CHECK_SH" <<'PY_CHECK'
+import hashlib, json, pathlib, re, subprocess, sys
 
-  scenario=$(meta_get "$meta" scenario)
-  workdir=$(meta_get "$meta" workdir)
-  skill_sha256=$(meta_get "$meta" skill_sha256)
-  harness=$(meta_get "$meta" harness)
-  model=$(meta_get "$meta" model)
-  seconds=$(meta_get "$meta" seconds)
+run = pathlib.Path(sys.argv[1]).resolve()
+meta = json.loads((run / "meta.json").read_text())
+workdir = pathlib.Path(meta["workdir"]).resolve()
+errors = []
+result = dict(meta)
+result.update(handoff_found=False, closing_present=False, trailing_text=False,
+              handoff_ends_with_closing=False, check_fail=None, check_warn=None)
 
-  # Search workdir, plus <run>/repo when that's a different directory
-  # (multi-repo-worktree: workdir is worktree-feature, but repo/ shares the
-  # same .git and could be where a handoff landed instead).
-  handoff_file=$(find_handoff "$workdir")
-  if [ -z "$handoff_file" ] && [ -d "$run_dir/repo" ] && [ "$workdir" != "$run_dir/repo" ]; then
-    handoff_file=$(find_handoff "$run_dir/repo")
-  fi
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
-  handoff_found=false
-  check_fail=""
-  check_warn=""
-  check_summary=""
-  lines=""
-  declared_depth=""
-  has_draft=false
-  has_deferred_or_decision_state=false
-  handoff_ends_with_closing=false
+def inside(path, parent):
+    return path == parent or parent in path.parents
 
-  if [ -n "$handoff_file" ]; then
-    handoff_found=true
-    "$CHECK_SH" --root "$workdir" "$handoff_file" > "$run_dir/check.txt" 2>&1
-    check_summary=$(grep '^SUMMARY' "$run_dir/check.txt" || true)
-    check_fail=$(echo "$check_summary" | sed -n 's/.*fail=\([0-9]*\).*/\1/p')
-    check_warn=$(echo "$check_summary" | sed -n 's/.*warn=\([0-9]*\).*/\1/p')
+def last_line(path):
+    if not path.is_file():
+        return "", False
+    lines = path.read_text().splitlines()
+    nonempty = [i for i, line in enumerate(lines) if line.strip()]
+    if not nonempty:
+        return "", False
+    i = nonempty[-1]
+    return lines[i].strip(), i != len(lines) - 1
 
-    lines=$(wc -l < "$handoff_file" | tr -d ' ')
+# Old results cannot prove freshness: re-prepare rather than silently grade them.
+if meta.get("schema_version") != 2 or "initial_handoffs" not in meta:
+    errors.append("legacy metadata has no artifact baseline; prepare a new run")
+if not inside(workdir, run):
+    errors.append("workdir is outside this run")
+if meta.get("harness") == "codex" and "exit_code" not in meta:
+    errors.append("Codex author exit status is missing")
+if "exit_code" in meta and str(meta["exit_code"]) != "0":
+    errors.append("author exited unsuccessfully")
+skill = pathlib.Path(meta.get("skill_path", ""))
+if not skill.is_file() or digest(skill) != meta.get("skill_sha256"):
+    errors.append("installed skill no longer matches prepared skill hash")
 
-    depth_line=$(grep -m1 -F "Document depth:" "$handoff_file" || true)
-    if [ -n "$depth_line" ]; then
-      declared_depth=$(echo "$depth_line" | grep -oE 'COMPACT|STANDARD|GOVERNED' | head -1)
-    fi
+message = run / "last-message.txt"
+closing, trailing = last_line(message)
+result["last_message_sha256"] = digest(message) if message.is_file() else None
+if message.is_file() and len([line for line in message.read_text().splitlines() if line.strip()]) != 1:
+    errors.append("final message must contain only the closing sentence")
+result["trailing_text"] = trailing
+match = re.fullmatch(r"(?:\*\*)?Read (.+\.md) and do (.+)\.(?:\*\*)?", closing)
+if not match:
+    errors.append("final message does not end with the closing sentence")
+else:
+    result["closing_present"] = True
+    target = pathlib.Path(match[1].strip("` ")).expanduser()
+    handoff = (target if target.is_absolute() else workdir / target).resolve()
+    result["handoff_file"] = str(handoff)
+    if not inside(handoff, run):
+        errors.append("closing sentence points outside this run")
+    elif not handoff.is_file():
+        errors.append("closing sentence points to a missing handoff")
+    else:
+        result["handoff_found"] = True
+        result["handoff_sha256"] = digest(handoff)
+        if meta.get("initial_handoffs", {}).get(str(handoff)) == result["handoff_sha256"]:
+            errors.append("closing sentence selects an unchanged preexisting handoff")
+        file_closing, _ = last_line(handoff)
+        result["handoff_ends_with_closing"] = file_closing == closing
+        if file_closing != closing:
+            errors.append("final message does not quote the handoff final line exactly")
+        if trailing:
+            errors.append("blank lines follow the final message closing sentence")
+        text = handoff.read_text()
+        result["lines"] = len(text.splitlines())
+        depth = re.search(r"Document depth:[*` ]*(COMPACT|STANDARD|GOVERNED)", text)
+        result["declared_depth"] = depth[1] if depth else None
+        # Resolve citations against the owning checkout, including sibling worktrees.
+        root = subprocess.run(["git", "-C", str(handoff.parent), "rev-parse", "--show-toplevel"],
+                              capture_output=True, text=True)
+        check_root = pathlib.Path(root.stdout.strip()).resolve() if root.returncode == 0 else workdir
+        if not inside(check_root, run):
+            check_root = workdir  # non-Git scratch dirs can inherit the outer Baton repository
+        # Keep accepted artifacts inside the same scope captured by the freshness baseline.
+        if handoff.parent != check_root / "docs" / "handoffs":
+            errors.append("handoff must be in the owning checkout docs/handoffs directory")
+        checked = subprocess.run(["bash", sys.argv[2], "--root", str(check_root), str(handoff)],
+                                 capture_output=True, text=True)
+        (run / "check.txt").write_text(checked.stdout + checked.stderr)
+        summary = re.search(r"^SUMMARY fail=(\d+) warn=(\d+) pass=\d+ file=", checked.stdout, re.M)
+        result["check_fail"] = int(summary[1]) if summary else None
+        result["check_warn"] = int(summary[2]) if summary else None
+        result["checker_exit_code"] = checked.returncode
+        if checked.returncode != 0 or summary is None or int(summary[1]) != 0:
+            errors.append("handoff validation failed")
 
-    if sed 's/\*//g' "$handoff_file" | grep -qiE 'status:[[:space:]]*draft'; then
-      has_draft=true
-    fi
-    if grep -qiE 'deferred by absence|Human decision state' "$handoff_file"; then
-      has_deferred_or_decision_state=true
-    fi
-
-    handoff_line_info=$(closing_sentence_line "$handoff_file")
-    handoff_last_nonempty=$(echo "$handoff_line_info" | cut -f3-)
-    if matches_closing "$handoff_last_nonempty"; then
-      handoff_ends_with_closing=true
-    fi
-  fi
-
-  # Last message: closing sentence present + whether anything (even a blank
-  # line) follows the last non-empty line.
-  closing_present=false
-  trailing_text=false
-  last_msg="$run_dir/last-message.txt"
-  if [ -f "$last_msg" ]; then
-    msg_line_info=$(closing_sentence_line "$last_msg")
-    msg_total=$(echo "$msg_line_info" | cut -f1)
-    msg_last_ln=$(echo "$msg_line_info" | cut -f2)
-    msg_last_text=$(echo "$msg_line_info" | cut -f3-)
-    if matches_closing "$msg_last_text"; then
-      closing_present=true
-    fi
-    if [ -n "$msg_last_ln" ] && [ "$msg_total" -gt "$msg_last_ln" ]; then
-      trailing_text=true
-    fi
-  fi
-
-  {
-    echo "# Run report: $run_id"
-    echo
-    echo "- scenario: $scenario"
-    echo "- harness: $harness"
-    echo "- model: $model"
-    echo "- skill_sha256: $skill_sha256"
-    echo "- workdir: $workdir"
-    echo "- seconds: $seconds"
-    echo
-    echo "## Handoff"
-    echo "- handoff_found: $handoff_found"
-    echo "- handoff_file: ${handoff_file:-none}"
-    echo "- lines: $lines"
-    echo "- declared_depth: ${declared_depth:-none}"
-    echo "- status_draft_remains: $has_draft"
-    echo "- has_deferred_by_absence_or_human_decision_state: $has_deferred_or_decision_state"
-    echo "- handoff_last_line_is_closing_sentence: $handoff_ends_with_closing"
-    echo
-    echo "## Last message"
-    echo "- closing_present: $closing_present"
-    echo "- trailing_text: $trailing_text"
-    echo
-    echo "## check.sh"
-    echo "- ${check_summary:-not run (no handoff found)}"
-  } > "$run_dir/report.md"
-
-  mkdir -p "$RUNS_DIR"
-  index="$RUNS_DIR/index.tsv"
-  if [ ! -f "$index" ]; then
-    printf 'run_id\tscenario\tharness\tmodel\tskill_sha256_8\thandoff_found\tcheck_fail\tcheck_warn\tclosing_present\ttrailing_text\tlines\tseconds\n' > "$index"
-  fi
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-    "$run_id" "$scenario" "$harness" "$model" "${skill_sha256:0:8}" \
-    "$handoff_found" "$check_fail" "$check_warn" "$closing_present" \
-    "$trailing_text" "$lines" "$seconds" >> "$index"
-
-  cat "$run_dir/report.md"
+result["verdict"] = "fail" if errors else "pass"
+result["errors"] = errors
+(run / "result.json").write_text(json.dumps(result, indent=2) + "\n")
+report = [f"# Run report: {meta['run_id']}", "", f"- verdict: {result['verdict']}"]
+for key in ("scenario", "harness", "model", "skill_sha256", "workdir", "seconds",
+            "handoff_found", "handoff_file", "handoff_sha256", "last_message_sha256",
+            "lines", "declared_depth", "closing_present", "trailing_text",
+            "handoff_ends_with_closing", "check_fail", "check_warn"):
+    report.append(f"- {key}: {result.get(key)}")
+report.extend(["", "## Failures", *[f"- {error}" for error in errors]])
+(run / "report.md").write_text("\n".join(report) + "\n")
+# Preserve the existing TSV columns; result.json carries the full verdict and hashes.
+index = run.parent / "index.tsv"
+columns = ("run_id", "scenario", "harness", "model", "skill_sha256_8", "handoff_found",
+           "check_fail", "check_warn", "closing_present", "trailing_text", "lines", "seconds")
+result["skill_sha256_8"] = meta.get("skill_sha256", "")[:8]
+with index.open("a") as stream:
+    if index.stat().st_size == 0:
+        stream.write("\t".join(columns) + "\n")
+    stream.write("\t".join(str(result.get(key, "")).lower() if isinstance(result.get(key), bool)
+                            else str(result.get(key, "")) for key in columns) + "\n")
+print("\n".join(report))
+sys.exit(bool(errors))
+PY_CHECK
 }
 
 [ $# -ge 1 ] || usage
