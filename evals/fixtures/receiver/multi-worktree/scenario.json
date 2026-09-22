@@ -1,0 +1,17 @@
+{
+  "files": {
+    ".gitignore": "__pycache__/\ndocs/handoffs/\n",
+    "README.md": "# Multi-worktree receiver control\n\nThe continuation plan identifies one execution checkout. Preserve every other registered lane and all physical recovery evidence.\n"
+  },
+  "protected": [
+    "README.md"
+  ],
+  "grade": "from pathlib import Path\nexecution = Path({{EXECUTION}})\nsibling = Path({{SIBLING}})\ndetached = Path({{DETACHED}})\nsquash_merged = Path({{SQUASH_MERGED}})\nstale_recovery = Path({{STALE_RECOVERY}})\nplan = Path('docs/plans/multi-worktree.md')\nassert plan.is_file(), 'canonical project plan remains available'\nassert str(execution) in plan.read_text(), 'plan identifies the intended execution lane'\nassert (execution / 'result.txt').read_text() == 'resumed selected execution lane\\n', 'receiver resumes only the intended lane'\nassert (sibling / 'owner/notes.md').read_text() == 'Another owner: do not alter this dirty lane.\\n', 'dirty sibling is preserved'\nassert detached.is_dir(), 'detached duplicate-head lane is preserved'\nassert (squash_merged / 'squash.txt').read_text() == 'Merged through a squash commit.\\n', 'squash-integrated branch remains inspectable'\nassert (stale_recovery / 'recovery/unfinished.md').read_text() == 'Preserve this untracked recovery evidence.\\n', 'prunable recovery evidence is preserved'\nprint('PASS selected execution lane resumed; sibling, detached, squash, and prunable lanes preserved')\n",
+  "success_verdict": "completed",
+  "self_test_solution": {},
+  "self_test_worktree_solution": {
+    "execution": {
+      "result.txt": "resumed selected execution lane\n"
+    }
+  }
+}

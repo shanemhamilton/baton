@@ -270,6 +270,27 @@ if [ "$is_git" = "1" ] || meaningful "$record_value" || meaningful "$record_poli
   else
     emit PASS C10 "Continuation policy has a cited repository rule"
   fi
+  for required in 'Task identity' 'Continuation lineage' 'Revalidation triggers'; do
+    if meaningful "$(field_value "$required")"; then
+      emit PASS C10 "$required is populated"
+    else
+      emit FAIL C10 "missing or empty $required"
+    fi
+  done
+  continuation_lifecycle=$(field_value 'Continuation lifecycle' | tr '[:lower:]' '[:upper:]')
+  case "$continuation_lifecycle" in
+    ACTIVE|SUPERSEDED|CLOSED) emit PASS C10 "Continuation lifecycle is valid" ;;
+    *) emit FAIL C10 "Continuation lifecycle must be ACTIVE, SUPERSEDED, or CLOSED" ;;
+  esac
+  receiver_start=$(field_value 'Receiver start')
+  record_last=$(awk 'NF{last=$0}END{print last}' "$FILE" | sed 's/[*`]//g;s/^[[:space:]]*//;s/[[:space:]]*$//')
+  if ! meaningful "$receiver_start"; then
+    emit FAIL C10 "missing or empty Receiver start"
+  elif [ "$receiver_start" = "$record_last" ]; then
+    emit PASS C10 "Receiver start matches the final continuation line"
+  else
+    emit FAIL C10 "Receiver start must match the final continuation line"
+  fi
 fi
 
 if [ "$is_git" = "1" ]; then
@@ -296,7 +317,16 @@ if [ "$is_git" = "1" ]; then
   check_exact_field() {
     label="$1"; expected="$2"
     actual=$(field_value "$label")
-    if [ "$actual" = "$expected" ]; then
+    canonical_value() {
+      if [ -d "$1" ]; then
+        cd -P "$1" 2>/dev/null && pwd
+      else
+        printf '%s\n' "$1"
+      fi
+    }
+    actual_canonical=$(canonical_value "$actual")
+    expected_canonical=$(canonical_value "$expected")
+    if [ "$actual_canonical" = "$expected_canonical" ]; then
       emit PASS C10 "$label matches this checkout"
     elif ! meaningful "$actual"; then
       emit FAIL C10 "missing or empty $label"
@@ -419,7 +449,11 @@ if [ "$is_git" = "1" ]; then
         # recording a final-file hash would be self-referential and impossible.
         continuation_content_hash() {
           sed -E 's/^([[:space:]>-]*\*{0,2}Receiver readback SHA-256:\*{0,2}[[:space:]]*).*/\1<attested-content-hash>/' "$1" \
-            | shasum -a 256 | awk '{print $1}'
+            | if command -v shasum >/dev/null 2>&1; then
+                shasum -a 256
+              else
+                sha256sum
+              fi | awk '{print $1}'
         }
         expected_hash=$(continuation_content_hash "$FILE")
         if [ -z "$source_record" ] || [ ! "$source_record" -ef "$FILE" ]; then
@@ -515,7 +549,7 @@ if [ "$is_git" = "1" ]; then
     rows=$(table_rows "$ledger")
     while IFS= read -r row; do
       [ -n "$row" ] || continue
-      for required in 'Target path' 'Repository' 'HEAD' 'Branch' 'Registry state' 'Dirty state' \
+      for required in 'Target path' 'Action' 'Source path' 'Destination path' 'Repository' 'HEAD' 'Branch' 'Registry state' 'Dirty state' \
           'Untracked paths' 'Stash dependency' 'Unique commits' 'Integration evidence' \
           'Active process or lease' 'Owner/task' 'Recovery ref' 'Pre-action inventory' \
           'Post-action verification' 'Disposition' 'Retirement command' 'Action owner'; do
@@ -523,6 +557,16 @@ if [ "$is_git" = "1" ]; then
         meaningful "$value" || emit FAIL C10 "Worktree ledger row has an empty '$required'"
       done
       disposition=$(table_cell "$header" "$row" 'Disposition')
+      row_action=$(table_cell "$header" "$row" 'Action')
+      row_action_upper=$(printf '%s' "$row_action" | tr '[:lower:]' '[:upper:]' | sed -E 's/[[:space:]]+//g')
+      case "$row_action_upper" in
+        MOVE|REMOVE|REPAIR|BRANCH-DELETE) ;;
+        *) emit FAIL C10 "Worktree ledger Action must be MOVE, REMOVE, REPAIR, or BRANCH-DELETE" ;;
+      esac
+      case ",$action," in
+        *,"$row_action_upper",*) ;;
+        *) emit FAIL C10 "Worktree ledger Action is not declared by Worktree lifecycle action" ;;
+      esac
       row_lower=$(printf '%s' "$row" | tr '[:upper:]' '[:lower:]')
       if printf '%s\n' "$row_lower" | grep -q 'unknown' && ! retain_disposition "$disposition"; then
         emit FAIL C10 "Worktree ledger Unknown state must retain the target"
@@ -542,13 +586,15 @@ if [ "$is_git" = "1" ]; then
       fi
       command=$(table_cell "$header" "$row" 'Retirement command')
       if printf '%s\n' "$disposition" | grep -qiE 'remove|retire|delete'; then
-        if printf '%s\n' "$command" | grep -qiE 'git[[:space:]]+worktree[[:space:]]+prune|git[[:space:]]+clean|rm[[:space:]]+-rf|git[[:space:]]+worktree[[:space:]]+remove'; then
-          emit FAIL C10 "Worktree ledger retirement command must use the repository-native primitive"
+        if printf '%s\n' "$command" | grep -qiE 'git[[:space:]]+worktree[[:space:]]+prune|git[[:space:]]+clean|rm[[:space:]]+-rf|git[[:space:]]+worktree[[:space:]]+remove.*(^|[[:space:]])(-f|--force)([[:space:]]|$)'; then
+          emit FAIL C10 "Worktree ledger retirement command must not force cleanup"
+        elif printf '%s\n' "$command" | grep -qiE 'git[[:space:]]+worktree[[:space:]]+remove'; then
+          emit PASS C10 "Worktree ledger uses standard non-forced Git removal"
         elif ! printf '%s\n' "$command" | grep -qE '(/|\\.)'; then
           emit FAIL C10 "Worktree ledger retirement command must cite a repository-native command"
         fi
       fi
-      if printf '%s\n' "$action" | grep -q 'MOVE' \
+      if [ "$row_action_upper" = "MOVE" ] \
           && ! printf '%s\n' "$command" | grep -q 'git worktree move'; then
         emit FAIL C10 "worktree MOVE must use git worktree move"
       fi
@@ -606,7 +652,7 @@ EOF_BRANCH_ROWS
       worktree_ledger=$(table_text 'Worktree ledger')
       branch_ledger=$(table_text 'Branch ledger')
       validate_ledger_headers 'Worktree ledger' "$worktree_ledger" \
-        'Target path' 'Source path' 'Destination path' 'Repository' 'HEAD' 'Branch' 'Registry state' \
+        'Target path' 'Action' 'Source path' 'Destination path' 'Repository' 'HEAD' 'Branch' 'Registry state' \
         'Dirty state' 'Untracked paths' 'Stash dependency' 'Unique commits' 'Integration evidence' \
         'Active process or lease' 'Owner/task' 'Recovery ref' 'Pre-action inventory' \
         'Post-action verification' 'Disposition' 'Retirement command' 'Action owner'
@@ -858,7 +904,7 @@ fi
 last_line=$(awk 'NF{last=$0} END{print last}' "$FILE")
 stripped_last=$(echo "$last_line" | sed -e 's/\*//g' -e 's/`//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
-if [[ "$stripped_last" =~ ^Read[[:space:]]+(.+\.md)[[:space:]]+and[[:space:]]+do[[:space:]]+(.+)\.$ ]]; then
+if [[ "$stripped_last" =~ ^Read[[:space:]]+(.+)[[:space:]]+and[[:space:]]+do[[:space:]]+(.+)\.$ ]]; then
   cited_path="${BASH_REMATCH[1]}"
   case "$cited_path" in
     "~"*) cited_path="$HOME${cited_path#\~}" ;;

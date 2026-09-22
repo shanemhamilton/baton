@@ -55,11 +55,11 @@ class Checks(unittest.TestCase):
         self.valid = handoff(self.file)
         self.file.write_text(self.valid)
 
-    def check(self, text=None, expected=0):
+    def check(self, text=None, expected=0, env=None):
         if text is not None:
             self.file.write_text(text)
         result = subprocess.run(["bash", str(EVALS / "check.sh"), "--root", str(self.root), str(self.file)],
-                                cwd="/", capture_output=True, text=True)
+                                cwd="/", capture_output=True, text=True, env=env)
         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
         skill = (EVALS.parent / "skills/baton/SKILL.md").read_text()
         inline = skill.split("### Step 8", 1)[1].split("```bash\n", 1)[1].split("\n```", 1)[0]
@@ -69,12 +69,12 @@ class Checks(unittest.TestCase):
         self.assertEqual(installed.returncode, expected, "inline block: " + installed.stdout + installed.stderr)
         return result.stdout
 
-    def check_checker(self, text=None, expected=0):
+    def check_checker(self, text=None, expected=0, env=None):
         """Exercise checker-only Git rules that the portable inline block cannot inspect."""
         if text is not None:
             self.file.write_text(text)
         result = subprocess.run(["bash", str(EVALS / "check.sh"), "--root", str(self.root), str(self.file)],
-                                cwd="/", capture_output=True, text=True)
+                                cwd="/", capture_output=True, text=True, env=env)
         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
         return result.stdout
 
@@ -176,6 +176,43 @@ class Checks(unittest.TestCase):
         false_root = self.root.resolve() / "not-the-checkout"
         self.check_checker(record.replace(f"**Repository root:** `{self.root.resolve()}`", f"**Repository root:** `{false_root}`"), expected=1)
 
+    def test_git_tuple_accepts_symlink_aliases_for_recorded_paths(self):
+        record = self.git_record()
+        alias = Path(tempfile.mkdtemp(prefix="checkout-alias-", dir=self.root.parent))
+        alias.rmdir()
+        alias.symlink_to(self.root, target_is_directory=True)
+        self.addCleanup(alias.unlink)
+        common = self.git("rev-parse", "--git-common-dir")
+        common_path = (self.root / common).resolve() if not Path(common).is_absolute() else Path(common).resolve()
+        record = record.replace(f"`{self.root.resolve()}`", f"`{alias}`")
+        record = record.replace(f"`{common_path}`", f"`{alias / '.git'}`")
+        self.check_checker(record)
+
+    def test_git_requires_continuation_lifecycle_fields_and_matching_receiver_start(self):
+        record = self.git_record()
+        for field in ("Task identity", "Continuation lineage", "Revalidation triggers"):
+            with self.subTest(field=field):
+                missing = re.sub(rf"^- \*\*{re.escape(field)}:\*\*.*\n", "", record, flags=re.MULTILINE)
+                output = self.check_checker(missing, expected=1)
+                self.assertIn(field, output)
+        invalid = record.replace("**Continuation lifecycle:** ACTIVE", "**Continuation lifecycle:** EXPIRED")
+        self.assertIn("Continuation lifecycle must", self.check_checker(invalid, expected=1))
+        mismatched = record.replace("starting by inspecting the source.", "starting by doing unrelated work.", 1)
+        self.assertIn("Receiver start must match", self.check_checker(mismatched, expected=1))
+
+    def test_extensionless_continuation_record_passes_closing_validation(self):
+        original_file = self.file
+        original_valid = self.valid
+        self.file = self.root / "docs/plans/current-continuation"
+        self.file.parent.mkdir(parents=True, exist_ok=True)
+        self.valid = handoff(self.file)
+        self.file.write_text(self.valid)
+        try:
+            self.check()
+        finally:
+            self.file = original_file
+            self.valid = original_valid
+
     def test_git_rejects_symlinked_continuation_record(self):
         record = self.git_record()
         external = self.root.parent / "external-continuation.md"
@@ -226,6 +263,35 @@ class Checks(unittest.TestCase):
         receiver_copy.write_text(record)
         self.check_checker(record)
 
+    def test_git_accepts_verified_transfer_without_shasum(self):
+        record = self.git_record()
+        destination = Path(tempfile.mkdtemp(prefix="baton receiver "))
+        self.addCleanup(shutil.rmtree, destination)
+        receiver_copy = destination / "docs/handoffs/receiver-copy.md"
+        receiver_copy.parent.mkdir(parents=True)
+        transfer = f"""- **Transfer source root:** `{self.root}`
+- **Transfer destination root:** `{destination}`
+- **Handoff source:** `{self.file}`
+- **Handoff destination:** `{receiver_copy}`
+- **Transfer availability:** verified receiver readback
+- **Receiver readback SHA-256:** sha256:<attested-content-hash>
+"""
+        record = record.replace("- **Worktree lifecycle action:**", transfer + "- **Worktree lifecycle action:")
+        canonical = re.sub(
+            r"^([ \t>*-]*\*{0,2}Receiver readback SHA-256:\*{0,2}[ \t]*).*",
+            r"\1<attested-content-hash>", record, flags=re.MULTILINE,
+        )
+        record = record.replace("sha256:<attested-content-hash>", f"sha256:{hashlib.sha256(canonical.encode()).hexdigest()}")
+        self.file.write_text(record)
+        receiver_copy.write_text(record)
+        bin_dir = destination / "without-shasum"
+        bin_dir.mkdir()
+        for command in ("git", "mktemp", "dirname", "basename", "sed", "awk", "grep", "tr", "sort", "head", "tail", "cut", "cmp", "wc", "sha256sum"):
+            executable = shutil.which(command)
+            if executable:
+                (bin_dir / command).symlink_to(executable)
+        self.check_checker(record, env={**os.environ, "PATH": str(bin_dir) + ":/bin"})
+
     def test_git_rejects_cleanup_without_authority_or_ledgers(self):
         record = self.git_record().replace("**Worktree lifecycle action:** NONE", "**Worktree lifecycle action:** REMOVE")
         output = self.check_checker(record, expected=1)
@@ -247,9 +313,9 @@ class Checks(unittest.TestCase):
 - **Worktree lifecycle action:** REMOVE
 
 ### Worktree ledger
-| Target path | Source path | Destination path | Repository | HEAD | Branch | Registry state | Dirty state | Untracked paths | Stash dependency | Unique commits | Integration evidence | Active process or lease | Owner/task | Recovery ref | Pre-action inventory | Post-action verification | Disposition | Retirement command | Action owner |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `{self.root / 'feature-lane'}` | `{self.root / 'feature-lane'}` | none | `{self.root}` | {head} | feature/gone | registered | clean | none | none | 1 | PR absent | no lease | baton-test | refs/heads/feature/gone | status captured | pending recheck | REMOVE-CANDIDATE | `tools/retire-worktree.py` | baton-test |
+| Target path | Action | Source path | Destination path | Repository | HEAD | Branch | Registry state | Dirty state | Untracked paths | Stash dependency | Unique commits | Integration evidence | Active process or lease | Owner/task | Recovery ref | Pre-action inventory | Post-action verification | Disposition | Retirement command | Action owner |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `{self.root / 'feature-lane'}` | REMOVE | `{self.root / 'feature-lane'}` | `{self.root / 'feature-lane'}` | `{self.root}` | {head} | feature/gone | registered | clean | none | none | 1 | PR absent | no lease | baton-test | refs/heads/feature/gone | status captured | pending recheck | REMOVE-CANDIDATE | `tools/retire-worktree.py` | baton-test |
 
 ### Branch ledger
 | Branch | Tip SHA | Upstream state | Attached worktree | Owner/task | Integration evidence | Unique commits | Recovery ref | Disposition | Action owner |
@@ -259,6 +325,49 @@ class Checks(unittest.TestCase):
         record = record.replace("- **Cleanup authority:** No destructive cleanup authorized\n- **Worktree lifecycle action:** NONE\n", lifecycle)
         output = self.check_checker(record, expected=1)
         self.assertIn("gone-upstream branch with unique commits must be retained", output)
+
+    def test_git_accepts_per_row_multi_action_contract_and_standard_removal(self):
+        record = self.git_record()
+        head = self.git("rev-parse", "HEAD")
+        execution = self.root / "execution"
+        retired = self.root / "retired"
+        lifecycle = f"""- **Cleanup authority:** authorized; source: issue BATON-2; scope: exact ledger targets; conditions: inventory and recovery verified
+- **Worktree lifecycle action:** MOVE,REMOVE
+
+### Worktree ledger
+| Target path | Action | Source path | Destination path | Repository | HEAD | Branch | Registry state | Dirty state | Untracked paths | Stash dependency | Unique commits | Integration evidence | Active process or lease | Owner/task | Recovery ref | Pre-action inventory | Post-action verification | Disposition | Retirement command | Action owner |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `{execution}` | MOVE | `{execution}` | `{execution}-moved` | `{self.root}` | {head} | execution | registered | clean | none | none | 0 | branch retained | no lease | baton-test | refs/heads/execution | registry captured | move verified | RETAIN | `git worktree move {execution} {execution}-moved` | baton-test |
+| `{retired}` | REMOVE | `{retired}` | `{retired}` | `{self.root}` | {head} | retired | registered | clean | none | none | 0 | merge proof | no lease | baton-test | refs/heads/retired | registry captured | removal verified | REMOVE-CANDIDATE | `git worktree remove {retired}` | baton-test |
+
+### Branch ledger
+| Branch | Tip SHA | Upstream state | Attached worktree | Owner/task | Integration evidence | Unique commits | Recovery ref | Disposition | Action owner |
+|---|---|---|---|---|---|---|---|---|---|
+| retired | {head} | gone | `{retired}` | baton-test | merge proof | 0 | refs/heads/retired | PRESERVE | baton-test |
+"""
+        record = record.replace("- **Cleanup authority:** No destructive cleanup authorized\n- **Worktree lifecycle action:** NONE\n", lifecycle)
+        self.check_checker(record)
+
+    def test_git_rejects_blank_worktree_source_or_destination(self):
+        record = self.git_record()
+        head = self.git("rev-parse", "HEAD")
+        lifecycle = f"""- **Cleanup authority:** authorized; source: issue BATON-3; scope: exact ledger targets; conditions: inventory and recovery verified
+- **Worktree lifecycle action:** MOVE
+
+### Worktree ledger
+| Target path | Action | Source path | Destination path | Repository | HEAD | Branch | Registry state | Dirty state | Untracked paths | Stash dependency | Unique commits | Integration evidence | Active process or lease | Owner/task | Recovery ref | Pre-action inventory | Post-action verification | Disposition | Retirement command | Action owner |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `{self.root / 'feature-lane'}` | MOVE |  |  | `{self.root}` | {head} | feature | registered | clean | none | none | 0 | branch retained | no lease | baton-test | refs/heads/feature | registry captured | move verified | RETAIN | `git worktree move source destination` | baton-test |
+
+### Branch ledger
+| Branch | Tip SHA | Upstream state | Attached worktree | Owner/task | Integration evidence | Unique commits | Recovery ref | Disposition | Action owner |
+|---|---|---|---|---|---|---|---|---|---|
+| feature | {head} | present | `{self.root / 'feature-lane'}` | baton-test | branch retained | 0 | refs/heads/feature | PRESERVE | baton-test |
+"""
+        record = record.replace("- **Cleanup authority:** No destructive cleanup authorized\n- **Worktree lifecycle action:** NONE\n", lifecycle)
+        output = self.check_checker(record, expected=1)
+        self.assertIn("empty 'Source path'", output)
+        self.assertIn("empty 'Destination path'", output)
 
 
 class Scenarios(unittest.TestCase):

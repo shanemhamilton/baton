@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -52,6 +53,50 @@ def fixture(name):
     return path, json.loads(path.read_text())
 
 
+def worktree_registry(repo):
+    return git(repo, "worktree", "list", "--porcelain")
+
+
+def prepare_multi_worktree(repo, run, revision):
+    """Build the committed receiver control that exercises real linked lanes.
+
+    All paths are under the temporary evaluator run. The intentionally manual
+    move creates a prunable registration without touching any user checkout.
+    """
+
+    execution = run / "execution"
+    sibling = run / "sibling"
+    detached = run / "detached"
+    merged = run / "squash-merged"
+    stale = run / "stale-prunable"
+    stale_recovery = run / "stale-recovery"
+
+    git(repo, "worktree", "add", "-q", "-b", "receiver/execution", str(execution), revision)
+    git(repo, "worktree", "add", "-q", "-b", "owner/sibling", str(sibling), revision)
+    write_files(sibling, {"owner/notes.md": "Another owner: do not alter this dirty lane.\n"})
+    git(repo, "worktree", "add", "-q", "--detach", str(detached), revision)
+    git(repo, "worktree", "add", "-q", "-b", "merged/squash-source", str(merged), revision)
+    write_files(merged, {"squash.txt": "Merged through a squash commit.\n"})
+    git(merged, "add", "squash.txt")
+    git(merged, "-c", "user.name=Receiver Fixture", "-c", "user.email=fixture@example.invalid",
+        "-c", "commit.gpgsign=false", "commit", "-qm", "Synthetic squash source")
+    git(repo, "merge", "--squash", "merged/squash-source")
+    git(repo, "-c", "user.name=Receiver Fixture", "-c", "user.email=fixture@example.invalid",
+        "-c", "commit.gpgsign=false", "commit", "-qm", "Synthetic squash integration")
+    git(repo, "worktree", "add", "-q", "-b", "stale/prunable", str(stale), revision)
+    write_files(stale, {"recovery/unfinished.md": "Preserve this untracked recovery evidence.\n"})
+    shutil.move(str(stale), str(stale_recovery))
+
+    return {
+        "execution": str(execution.resolve()),
+        "sibling": str(sibling.resolve()),
+        "detached": str(detached.resolve()),
+        "squash_merged": str(merged.resolve()),
+        "stale_prunable": str(stale.resolve()),
+        "stale_recovery": str(stale_recovery.resolve()),
+    }
+
+
 def prepare(name, run, handoff=None):
     source, spec = fixture(name)
     supplied_bytes = (Path(handoff) if handoff else source.parent / "handoff.md").read_bytes()
@@ -60,13 +105,13 @@ def prepare(name, run, handoff=None):
     repo = run / "repo"
     supplied = supplied.replace("{{REPO}}", str(repo.resolve()))
     closing = supplied.strip().splitlines()[-1].strip("*")
-    match = re.fullmatch(r"Read `?(.+?\.md)`? and do .+\.", closing)
+    match = re.fullmatch(r"Read `?(.+?)`? and do .+\.", closing)
     if not match:
-        raise ValueError("handoff must end with Read <handoff path>.md and do <mission>.")
+        raise ValueError("continuation record must end with Read <record path> and do <mission>.")
     destination = Path(match[1])
     destination = destination if destination.is_absolute() else repo / destination
-    if not destination.resolve().is_relative_to((repo / "docs/handoffs").resolve()):
-        raise ValueError("closing path must name a file inside the receiving repository's docs/handoffs directory")
+    if not destination.resolve().is_relative_to(repo.resolve()):
+        raise ValueError("closing path must name a file inside the receiving repository")
     packet_name = str(destination.resolve().relative_to(repo.resolve()))
     run.mkdir(parents=True, exist_ok=False)
     repo.mkdir()
@@ -84,14 +129,26 @@ def prepare(name, run, handoff=None):
         git(repo, "add", "--all")
         git(repo, "-c", "user.name=Receiver Fixture", "-c", "user.email=fixture@example.invalid",
             "-c", "commit.gpgsign=false", "commit", "-qm", "State changed after the handoff")
+    worktrees = {}
+    if source.parent.name == "multi-worktree":
+        worktrees = prepare_multi_worktree(repo, run, author_sha)
+        replacements.update({f"{{{{{name.upper()}}}}}": path for name, path in worktrees.items()})
     write_files(repo, spec.get("dirty", {}), replacements)
     # Only documented fixture placeholders are rendered. Never repair an author's
     # stale real paths or substantive instructions on its way to the receiver.
+    for old, new in replacements.items():
+        supplied = supplied.replace(old, new)
     supplied = supplied.replace("{{AUTHOR_SHA}}", author_sha)
     write_files(repo, {packet_name: supplied})
     protected = {}
     for name in spec["protected"]:
         protected[name] = {"sha256": digest(repo / name), "index": git(repo, "ls-files", "--stage", "--", name)}
+    worktree_protected = {}
+    if worktrees:
+        worktree_protected = {
+            "sibling": {"owner/notes.md": digest(Path(worktrees["sibling"]) / "owner/notes.md")},
+            "stale_recovery": {"recovery/unfinished.md": digest(Path(worktrees["stale_recovery"]) / "recovery/unfinished.md")},
+        }
     meta = {
         "scenario": source.parent.name,
         "fixture_sha256": digest(source),
@@ -102,6 +159,9 @@ def prepare(name, run, handoff=None):
         "author_sha": author_sha,
         "receiver_sha": git(repo, "rev-parse", "HEAD"),
         "protected": protected,
+        "worktrees": worktrees,
+        "worktree_protected": worktree_protected,
+        "worktree_registry": worktree_registry(repo) if worktrees else None,
     }
     (run / "meta.json").write_text(json.dumps(meta, indent=2) + "\n")
     closing = supplied.strip().splitlines()[-1]
@@ -131,6 +191,19 @@ def invariants(run, meta, source):
             and digest(path) == expected["sha256"]
             and git_matches(repo, expected["index"], "ls-files", "--stage", "--", name)
         )
+    if meta.get("worktrees"):
+        checks["worktree_registry_unchanged"] = worktree_registry(repo) == meta["worktree_registry"]
+        for name in ("execution", "sibling", "detached", "squash_merged", "stale_recovery"):
+            checks[f"worktree_present:{name}"] = Path(meta["worktrees"][name]).is_dir()
+        checks["stale_registration_still_prunable"] = (
+            not Path(meta["worktrees"]["stale_prunable"]).exists()
+            and "prunable" in worktree_registry(repo)
+        )
+        for lane, files in meta["worktree_protected"].items():
+            root = Path(meta["worktrees"][lane])
+            for name, expected in files.items():
+                path = root / name
+                checks[f"preserved:{lane}:{name}"] = path.is_file() and digest(path) == expected
     audit = run / "attempts.jsonl"
     checks["audit_present"] = audit.is_file() and not audit.is_symlink()
     attempts = len(audit.read_text().splitlines()) if checks["audit_present"] else None
@@ -146,8 +219,11 @@ def check(run, save=True):
     # The independently supplied assertions run in a fresh Python process, outside
     # the receiver's tests. Only fixture-owned assertions are executed as the grader.
     try:
+        grade = spec["grade"]
+        for name, path in meta.get("worktrees", {}).items():
+            grade = grade.replace(f"{{{{{name.upper()}}}}}", repr(path))
         result = subprocess.run(
-            [sys.executable, "-I", "-c", spec["grade"]], cwd=repo,
+            [sys.executable, "-I", "-c", grade], cwd=repo,
             capture_output=True, text=True, timeout=20,
         )
         checks["outcomes"] = result.returncode == 0
@@ -188,6 +264,8 @@ def self_test():
             _, spec = fixture(name)
             assert check(run, False)["verdict"] == "failed", f"unfinished {name} passed"
             write_files(repo, spec["self_test_solution"])
+            for lane, files in spec.get("self_test_worktree_solution", {}).items():
+                write_files(Path(json.loads((run / "meta.json").read_text())["worktrees"][lane]), files)
             if spec.get("self_test_command"):
                 subprocess.run([sys.executable, "-I", "-c", spec["self_test_command"]], cwd=repo, check=True)
             assert check(run, False)["verdict"] == spec["success_verdict"], f"completed {name} failed"
@@ -225,7 +303,7 @@ def self_test():
             protected.write_bytes(original + b"\naccidental overwrite\n")
             assert check(run, False)["verdict"] == "failed", "lost unrelated/protected work passed"
             protected.write_bytes(original)
-            packet = repo / HANDOFF
+            packet = repo / json.loads((run / "meta.json").read_text())["handoff_path"]
             original_packet = packet.read_bytes()
             packet.write_bytes(original_packet + b"\nchanged after dispatch\n")
             assert not check(run, False)["checks"]["handoff_unchanged"], "changed packet passed"
