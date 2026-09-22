@@ -13,7 +13,7 @@
 # it, the v2 profile applies and those are FAIL.
 #
 # See docs/plans/2026-09-01-baton-v2-rationalization-plan.md sections 6 and 8, and
-# evals/README.md for what each check id (C1-C9) means.
+# evals/README.md for what each check id (C1-C10) means.
 
 ROOT=""
 BASELINE=0
@@ -120,6 +120,27 @@ if [ ! -d "$ROOT" ]; then
   exit 1
 fi
 
+# An evaluator must never validate an arbitrary packet merely because its contents
+# look plausible. Resolve both ends without following a final-file symlink, then
+# require the record to live in the selected checkout. A linked worktree is valid:
+# its own top-level is the root; only a record outside that top-level is rejected.
+if [ -L "$FILE" ]; then
+  emit FAIL C1 "continuation record must not be a symlink"
+fi
+ROOT_PHYSICAL=$(cd -P "$ROOT" 2>/dev/null && pwd)
+FILE_PARENT_PHYSICAL=$(cd -P "$(dirname "$FILE")" 2>/dev/null && pwd)
+FILE_PHYSICAL="${FILE_PARENT_PHYSICAL}/$(basename "$FILE")"
+if [ -z "$ROOT_PHYSICAL" ] || [ -z "$FILE_PARENT_PHYSICAL" ]; then
+  emit FAIL C1 "could not canonicalize repository root or continuation record"
+else
+  case "$FILE_PHYSICAL" in
+    "$ROOT_PHYSICAL"/*) ;;
+    *) emit FAIL C1 "continuation record is outside the selected repository root" ;;
+  esac
+  ROOT="$ROOT_PHYSICAL"
+  FILE="$FILE_PHYSICAL"
+fi
+
 # --- C2: no "Status: DRAFT" line (case-insensitive, ** allowed) ---
 sed 's/\*//g' "$FILE" | grep -inE 'status:[[:space:]]*draft' > "$TMPDIR_CHECK/c2.txt" 2>/dev/null
 if [ -s "$TMPDIR_CHECK/c2.txt" ]; then
@@ -156,6 +177,12 @@ section_body() {
     inside && $0!~/^[ \t]*(---|```|[|])/ {print}
   ' "$FILE"
 }
+field_line() {
+  awk -v key="$1" '
+    {s=$0; gsub(/\*/,"",s); sub(/^[ \t>-]* /,"",s); sub(/^[ \t-]+/,"",s)}
+    index(s,key ":")==1 {print $0; exit}
+  ' "$FILE"
+}
 depth_value=$(field_value 'Document depth')
 case "$depth_value" in
   COMPACT|STANDARD|GOVERNED) emit PASS C3 "valid Document depth" ;;
@@ -190,6 +217,409 @@ for field in 'Start by' 'Keep going until'; do
     emit "$SEV_CONTENT" C3 "missing or empty Continuation Mission $field"
   fi
 done
+
+# --- C10: continuation-record and checkout safety ---
+# C10 is intentionally separate from document-shape checks: a well-written packet
+# must still fail if it names another checkout, asserts stale Git state, or proposes
+# cleanup without the evidence needed to recover it.
+is_git=0
+git_toplevel=$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null)
+if [ -n "$git_toplevel" ]; then
+  git_toplevel_physical=$(cd -P "$git_toplevel" 2>/dev/null && pwd)
+  if [ "$git_toplevel_physical" = "$ROOT" ]; then
+    is_git=1
+  else
+    emit FAIL C10 "--root must be the Git worktree top-level"
+  fi
+fi
+
+resolve_record_path() {
+  value="$1"
+  value=$(printf '%s' "$value" | sed -E 's/^[[:space:]]+|[[:space:]]+$//')
+  case "$value" in
+    "~"*) value="$HOME${value#\~}" ;;
+  esac
+  case "$value" in
+    /*) candidate="$value" ;;
+    *) candidate="$ROOT/$value" ;;
+  esac
+  candidate_parent=$(cd -P "$(dirname "$candidate")" 2>/dev/null && pwd)
+  [ -n "$candidate_parent" ] || return 1
+  printf '%s/%s\n' "$candidate_parent" "$(basename "$candidate")"
+}
+
+record_value=$(field_value 'Continuation record')
+record_policy=$(field_value 'Continuation policy')
+if [ "$is_git" = "1" ] || meaningful "$record_value" || meaningful "$record_policy"; then
+  if ! meaningful "$record_value"; then
+    emit FAIL C10 "missing or empty Continuation record"
+  else
+    record_target=$(resolve_record_path "$record_value")
+    if [ -z "$record_target" ] || [ ! -f "$record_target" ] || [ -L "$record_target" ]; then
+      emit FAIL C10 "Continuation record must resolve to an in-root regular file"
+    elif [ "$record_target" -ef "$FILE" ]; then
+      emit PASS C10 "Continuation record resolves to this file"
+    else
+      emit FAIL C10 "Continuation record resolves to a different file"
+    fi
+  fi
+  if ! meaningful "$record_policy"; then
+    emit FAIL C10 "missing or empty Continuation policy"
+  elif ! field_line 'Continuation policy' | grep -q '`[^`][^`]*`'; then
+    emit FAIL C10 "Continuation policy must cite the applicable repository rule"
+  else
+    emit PASS C10 "Continuation policy has a cited repository rule"
+  fi
+fi
+
+if [ "$is_git" = "1" ]; then
+  git_common_raw=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null)
+  case "$git_common_raw" in
+    /*) git_common_candidate="$git_common_raw" ;;
+    *) git_common_candidate="$ROOT/$git_common_raw" ;;
+  esac
+  git_common=$(cd -P "$git_common_candidate" 2>/dev/null && pwd)
+  git_head=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || printf 'UNBORN')
+  git_branch=$(git -C "$ROOT" symbolic-ref --quiet --short HEAD 2>/dev/null || printf 'DETACHED')
+  git_identity=$(git -C "$ROOT" remote get-url origin 2>/dev/null)
+  [ -n "$git_identity" ] || git_identity="$git_common"
+  git_upstream=$(git -C "$ROOT" status --short --branch --untracked-files=all 2>/dev/null | sed -n '1p')
+  status_digest() {
+    if command -v shasum >/dev/null 2>&1; then
+      git -C "$ROOT" status --porcelain=v2 --untracked-files=all 2>/dev/null | shasum -a 256 | awk '{print $1}'
+    else
+      git -C "$ROOT" status --porcelain=v2 --untracked-files=all 2>/dev/null | sha256sum | awk '{print $1}'
+    fi
+  }
+  git_dirty_digest=$(status_digest)
+
+  check_exact_field() {
+    label="$1"; expected="$2"
+    actual=$(field_value "$label")
+    if [ "$actual" = "$expected" ]; then
+      emit PASS C10 "$label matches this checkout"
+    elif ! meaningful "$actual"; then
+      emit FAIL C10 "missing or empty $label"
+    else
+      emit FAIL C10 "$label does not match this checkout"
+    fi
+  }
+  check_exact_field 'Repository identity' "$git_identity"
+  check_exact_field 'Repository root' "$ROOT"
+  check_exact_field 'Execution worktree' "$ROOT"
+  check_exact_field 'Git common directory' "$git_common"
+  check_exact_field 'Author HEAD' "$git_head"
+  check_exact_field 'Author branch' "$git_branch"
+  recorded_upstream=$(field_value 'Upstream state')
+  if [ "$recorded_upstream" = "$git_upstream" ] \
+      || { [ "$(printf '%s' "$recorded_upstream" | tr '[:upper:]' '[:lower:]')" = "none" ] \
+           && ! printf '%s\n' "$git_upstream" | grep -q '\.\.\.'; }; then
+    emit PASS C10 "Upstream state matches this checkout"
+  elif ! meaningful "$recorded_upstream"; then
+    emit FAIL C10 "missing or empty Upstream state"
+  else
+    emit FAIL C10 "Upstream state does not match this checkout"
+  fi
+
+  truth_ref=$(field_value 'Truth ref')
+  if ! meaningful "$truth_ref"; then
+    emit FAIL C10 "missing or empty Truth ref"
+  elif printf '%s\n' "$truth_ref" | grep -qE '^Unknown[[:space:]]+[^[:space:]].*$'; then
+    emit PASS C10 "Truth ref is explicitly unknown pending read-only reconciliation"
+  elif printf '%s\n' "$truth_ref" | grep -qE '^([^[:space:]]+)[[:space:]]+@[[:space:]]+([0-9a-fA-F]{40})$'; then
+    truth_name=$(printf '%s\n' "$truth_ref" | sed -E 's/^([^[:space:]]+)[[:space:]]+@[[:space:]]+([0-9a-fA-F]{40})$/\1/')
+    truth_sha=$(printf '%s\n' "$truth_ref" | sed -E 's/^([^[:space:]]+)[[:space:]]+@[[:space:]]+([0-9a-fA-F]{40})$/\2/')
+    resolved_truth_sha=$(git -C "$ROOT" rev-parse --verify --quiet "${truth_name}^{commit}" 2>/dev/null)
+    if [ "$resolved_truth_sha" = "$truth_sha" ]; then
+      emit PASS C10 "Truth ref and SHA resolve in this checkout"
+    else
+      emit FAIL C10 "Truth ref does not resolve to its recorded SHA"
+    fi
+  else
+    emit FAIL C10 "Truth ref must be '<ref> @ <40-char SHA>' or 'Unknown <reason>'"
+  fi
+
+  dirty_digest=$(field_value 'Dirty-state digest' | sed -E 's/^sha256://')
+  if [ "$dirty_digest" = "$git_dirty_digest" ]; then
+    emit PASS C10 "Dirty-state digest matches this checkout"
+  elif ! meaningful "$dirty_digest"; then
+    emit FAIL C10 "missing or empty Dirty-state digest"
+  else
+    emit FAIL C10 "Dirty-state digest does not match this checkout"
+  fi
+
+  observed_at=$(field_value 'Checkout observed at')
+  if printf '%s\n' "$observed_at" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9]{2}:[0-9]{2}(:[0-9]{2})?([.][0-9]+)?(Z|[+-][0-9]{2}:?[0-9]{2})?$'; then
+    emit PASS C10 "Checkout observed at has an ISO-8601 timestamp"
+  else
+    emit FAIL C10 "Checkout observed at must be an ISO-8601 timestamp"
+  fi
+  refresh_command=$(field_value 'Checkout refresh command')
+  if meaningful "$refresh_command" && printf '%s\n' "$refresh_command" | grep -q 'git '; then
+    emit PASS C10 "Checkout refresh command names Git evidence"
+  else
+    emit FAIL C10 "Checkout refresh command must name a Git command"
+  fi
+  mismatch_disposition=$(field_value 'Checkout mismatch disposition')
+  if printf '%s\n' "$mismatch_disposition" | grep -qi 'read[- ]only' && printf '%s\n' "$mismatch_disposition" | grep -qi 'reconcil'; then
+    emit PASS C10 "Checkout mismatch disposition preserves read-only reconciliation"
+  else
+    emit FAIL C10 "Checkout mismatch disposition must require read-only reconciliation"
+  fi
+
+  cleanup_authority=$(field_value 'Cleanup authority')
+  cleanup_normalized=$(printf '%s' "$cleanup_authority" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z]+/ /g;s/^ | $//g')
+  if [ "$cleanup_normalized" = "no destructive cleanup authorized" ]; then
+    cleanup_authorized=0
+    emit PASS C10 "destructive cleanup is explicitly unauthorized"
+  elif printf '%s\n' "$cleanup_authority" | grep -qi 'authorized' \
+      && printf '%s\n' "$cleanup_authority" | grep -qi 'source:' \
+      && printf '%s\n' "$cleanup_authority" | grep -qi 'scope:' \
+      && printf '%s\n' "$cleanup_authority" | grep -qi 'conditions:'; then
+    cleanup_authorized=1
+    emit PASS C10 "cleanup authorization names source, scope, and conditions"
+  else
+    cleanup_authorized=0
+    emit FAIL C10 "Cleanup authority must default to no destructive cleanup or name authorization source, scope, and conditions"
+  fi
+
+  # A transfer field is optional for an author staying in this checkout. Once a
+  # different destination root is named, however, source-side existence proves
+  # nothing: require the destination record and its receiver-side hash readback.
+  transfer_source_root=$(field_value 'Transfer source root')
+  transfer_destination_root=$(field_value 'Transfer destination root')
+  handoff_source=$(field_value 'Handoff source')
+  handoff_destination=$(field_value 'Handoff destination')
+  transfer_availability=$(field_value 'Transfer availability')
+  receiver_readback=$(field_value 'Receiver readback SHA-256' | sed -E 's/^sha256://')
+  if meaningful "$transfer_source_root" || meaningful "$transfer_destination_root" \
+      || meaningful "$handoff_source" || meaningful "$handoff_destination" \
+      || meaningful "$transfer_availability" || meaningful "$receiver_readback"; then
+    transfer_source_physical=$(cd -P "$transfer_source_root" 2>/dev/null && pwd)
+    transfer_destination_physical=$(cd -P "$transfer_destination_root" 2>/dev/null && pwd)
+    if [ "$transfer_source_physical" != "$ROOT" ]; then
+      emit FAIL C10 "Transfer source root must be this author checkout"
+    elif [ -z "$transfer_destination_physical" ]; then
+      emit FAIL C10 "Transfer destination root must exist before it is declared"
+    elif [ "$transfer_destination_physical" = "$ROOT" ]; then
+      emit PASS C10 "transfer stays in the author checkout"
+    else
+      if ! meaningful "$handoff_source" || ! meaningful "$handoff_destination" \
+          || ! meaningful "$transfer_availability" || ! meaningful "$receiver_readback"; then
+        emit FAIL C10 "cross-checkout transfer requires source, destination, availability, and receiver readback hash"
+      elif [[ "$handoff_source" != /* ]] || [[ "$handoff_destination" != /* ]]; then
+        emit FAIL C10 "cross-checkout Handoff source and Handoff destination must be absolute paths"
+      else
+        source_record=$(resolve_record_path "$handoff_source")
+        destination_candidate="$handoff_destination"
+        destination_parent=$(cd -P "$(dirname "$destination_candidate")" 2>/dev/null && pwd)
+        destination_record="${destination_parent}/$(basename "$destination_candidate")"
+        # The receipt lives inside the continuation record it authenticates.
+        # Hash a canonical form that replaces only that receipt value; otherwise
+        # recording a final-file hash would be self-referential and impossible.
+        continuation_content_hash() {
+          sed -E 's/^([[:space:]>-]*\*{0,2}Receiver readback SHA-256:\*{0,2}[[:space:]]*).*/\1<attested-content-hash>/' "$1" \
+            | shasum -a 256 | awk '{print $1}'
+        }
+        expected_hash=$(continuation_content_hash "$FILE")
+        if [ -z "$source_record" ] || [ ! "$source_record" -ef "$FILE" ]; then
+          emit FAIL C10 "Handoff source must resolve to this continuation record"
+        fi
+        case "$destination_record" in
+          "$transfer_destination_physical"/*) destination_in_root=1 ;;
+          *) destination_in_root=0 ;;
+        esac
+        if [ "$destination_in_root" != "1" ]; then
+          emit FAIL C10 "Handoff destination must be inside Transfer destination root"
+        elif [ -z "$destination_record" ] || [ ! -f "$destination_record" ] || [ -L "$destination_record" ]; then
+          emit FAIL C10 "Handoff destination must be a receiver-accessible regular file"
+        elif [ "$receiver_readback" != "$expected_hash" ] \
+            || ! printf '%s\n' "$transfer_availability" | grep -qi 'verified'; then
+          emit FAIL C10 "cross-checkout transfer lacks verified matching receiver readback"
+        else
+          actual_destination_hash=$(continuation_content_hash "$destination_record")
+          if [ "$actual_destination_hash" = "$expected_hash" ] && cmp -s "$FILE" "$destination_record"; then
+            emit PASS C10 "receiver copy and readback hash match the author record"
+          else
+            emit FAIL C10 "receiver copy does not exactly match the author continuation record"
+          fi
+        fi
+      fi
+    fi
+  fi
+
+  table_text() {
+    awk -v wanted="$1" '
+      /^#+[ \t]/ {
+        level=match($0,/[^#]/)-1
+        if (inside && level<=start) inside=0
+        if ($0 ~ wanted) {inside=1;start=level}
+        next
+      }
+      inside && /^\|/ {print}
+    ' "$FILE"
+  }
+  table_header() { printf '%s\n' "$1" | sed -n '/^|/ {p;q;}'; }
+  table_rows() {
+    printf '%s\n' "$1" | awk '
+      /^\|/ {
+        line=$0; gsub(/[|[:space:]:-]/,"",line)
+        if (line != "") {
+          if (!header_seen) {header_seen=1; next}
+          print
+        }
+      }
+    '
+  }
+  table_has_header() {
+    header=$(table_header "$1")
+    wanted=$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')
+    printf '%s\n' "$header" | tr '[:upper:]' '[:lower:]' | sed -E 's/[`*]//g;s/[[:space:]]+/ /g' \
+      | grep -Fq "| $wanted |"
+  }
+  table_cell() {
+    header="$1"; row="$2"; wanted="$3"
+    printf '%s\n%s\n' "$header" "$row" | awk -F'|' -v wanted="$wanted" '
+      function clean(s){gsub(/^[ \t]+|[ \t]+$/, "", s);gsub(/[`*]/,"",s);return tolower(s)}
+      NR==1 {for(i=1;i<=NF;i++)if(clean($i)==tolower(wanted))column=i;next}
+      NR==2 && column {value=$column;gsub(/^[ \t]+|[ \t]+$/, "", value);gsub(/[`*]/,"",value);print value}
+    '
+  }
+  retain_disposition() { printf '%s\n' "$1" | grep -qiE '^[[:space:]]*(retain|preserve)[[:space:]]*$'; }
+  usable_recovery() {
+    value=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+    [ -n "$value" ] && [ "$value" != "none" ] && [ "$value" != "unknown" ] && [ "$value" != "n/a" ]
+  }
+  unique_commits_are_zero() {
+    value=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+    [ "$value" = "0" ] || [ "$value" = "none" ] || [ "$value" = "no" ]
+  }
+  validate_ledger_headers() {
+    ledger_name="$1"; ledger="$2"; shift 2
+    header=$(table_header "$ledger")
+    if [ -z "$header" ]; then
+      emit FAIL C10 "$ledger_name is missing its table"
+      return 1
+    fi
+    if [ -z "$(table_rows "$ledger")" ]; then
+      emit FAIL C10 "$ledger_name must contain at least one target row"
+    fi
+    for required in "$@"; do
+      if ! table_has_header "$ledger" "$required"; then
+        emit FAIL C10 "$ledger_name is missing required column '$required'"
+      fi
+    done
+  }
+  validate_worktree_rows() {
+    ledger="$1"; action="$2"; header=$(table_header "$ledger")
+    rows=$(table_rows "$ledger")
+    while IFS= read -r row; do
+      [ -n "$row" ] || continue
+      for required in 'Target path' 'Repository' 'HEAD' 'Branch' 'Registry state' 'Dirty state' \
+          'Untracked paths' 'Stash dependency' 'Unique commits' 'Integration evidence' \
+          'Active process or lease' 'Owner/task' 'Recovery ref' 'Pre-action inventory' \
+          'Post-action verification' 'Disposition' 'Retirement command' 'Action owner'; do
+        value=$(table_cell "$header" "$row" "$required")
+        meaningful "$value" || emit FAIL C10 "Worktree ledger row has an empty '$required'"
+      done
+      disposition=$(table_cell "$header" "$row" 'Disposition')
+      row_lower=$(printf '%s' "$row" | tr '[:upper:]' '[:lower:]')
+      if printf '%s\n' "$row_lower" | grep -q 'unknown' && ! retain_disposition "$disposition"; then
+        emit FAIL C10 "Worktree ledger Unknown state must retain the target"
+      fi
+      registry=$(table_cell "$header" "$row" 'Registry state')
+      recovery=$(table_cell "$header" "$row" 'Recovery ref')
+      inventory=$(table_cell "$header" "$row" 'Pre-action inventory')
+      if printf '%s\n' "$registry" | grep -qiE 'prunable|missing source|mismatched git root'; then
+        if ! retain_disposition "$disposition" || ! usable_recovery "$recovery" || ! usable_recovery "$inventory"; then
+          emit FAIL C10 "prunable, missing-source, or mismatched-root worktrees require inventory, recovery, and RETAIN"
+        fi
+      fi
+      branch=$(table_cell "$header" "$row" 'Branch')
+      if printf '%s\n' "$branch" | grep -qi 'detached' && ! retain_disposition "$disposition" \
+          && ! usable_recovery "$recovery"; then
+        emit FAIL C10 "detached worktree retirement requires a recovery ref"
+      fi
+      command=$(table_cell "$header" "$row" 'Retirement command')
+      if printf '%s\n' "$disposition" | grep -qiE 'remove|retire|delete'; then
+        if printf '%s\n' "$command" | grep -qiE 'git[[:space:]]+worktree[[:space:]]+prune|git[[:space:]]+clean|rm[[:space:]]+-rf|git[[:space:]]+worktree[[:space:]]+remove'; then
+          emit FAIL C10 "Worktree ledger retirement command must use the repository-native primitive"
+        elif ! printf '%s\n' "$command" | grep -qE '(/|\\.)'; then
+          emit FAIL C10 "Worktree ledger retirement command must cite a repository-native command"
+        fi
+      fi
+      if printf '%s\n' "$action" | grep -q 'MOVE' \
+          && ! printf '%s\n' "$command" | grep -q 'git worktree move'; then
+        emit FAIL C10 "worktree MOVE must use git worktree move"
+      fi
+    done <<EOF_WORKTREE_ROWS
+$rows
+EOF_WORKTREE_ROWS
+  }
+  validate_branch_rows() {
+    ledger="$1"; action="$2"; header=$(table_header "$ledger")
+    rows=$(table_rows "$ledger")
+    while IFS= read -r row; do
+      [ -n "$row" ] || continue
+      for required in 'Branch' 'Tip SHA' 'Upstream state' 'Attached worktree' 'Owner/task' \
+          'Integration evidence' 'Unique commits' 'Recovery ref' 'Disposition' 'Action owner'; do
+        value=$(table_cell "$header" "$row" "$required")
+        meaningful "$value" || emit FAIL C10 "Branch ledger row has an empty '$required'"
+      done
+      disposition=$(table_cell "$header" "$row" 'Disposition')
+      row_lower=$(printf '%s' "$row" | tr '[:upper:]' '[:lower:]')
+      if printf '%s\n' "$row_lower" | grep -q 'unknown' && ! retain_disposition "$disposition"; then
+        emit FAIL C10 "Branch ledger Unknown state must retain the branch"
+      fi
+      upstream=$(table_cell "$header" "$row" 'Upstream state')
+      unique=$(table_cell "$header" "$row" 'Unique commits')
+      if printf '%s\n' "$upstream" | grep -qi 'gone' && ! unique_commits_are_zero "$unique" \
+          && ! retain_disposition "$disposition"; then
+        emit FAIL C10 "gone-upstream branch with unique commits must be retained"
+      fi
+      branch=$(table_cell "$header" "$row" 'Branch')
+      recovery=$(table_cell "$header" "$row" 'Recovery ref')
+      if printf '%s\n' "$branch" | grep -qi 'detached' && ! retain_disposition "$disposition" \
+          && ! usable_recovery "$recovery"; then
+        emit FAIL C10 "detached branch retirement requires a recovery ref"
+      fi
+      if ! printf '%s\n' "$action" | grep -q 'BRANCH-DELETE' \
+          && printf '%s\n' "$disposition" | grep -qiE 'remove|retire|delete'; then
+        emit FAIL C10 "worktree removal does not authorize branch deletion"
+      fi
+    done <<EOF_BRANCH_ROWS
+$rows
+EOF_BRANCH_ROWS
+  }
+
+  lifecycle_action=$(field_value 'Worktree lifecycle action')
+  lifecycle_upper=$(printf '%s' "$lifecycle_action" | tr '[:lower:]' '[:upper:]' | sed -E 's/[[:space:]]+//g')
+  if ! printf '%s\n' "$lifecycle_upper" | grep -qE '^(NONE|((MOVE|REMOVE|REPAIR|BRANCH-DELETE)(,(MOVE|REMOVE|REPAIR|BRANCH-DELETE))*))$'; then
+    emit FAIL C10 "Worktree lifecycle action must contain only NONE, MOVE, REMOVE, REPAIR, or BRANCH-DELETE"
+  else
+  case "$lifecycle_upper" in
+    NONE) emit PASS C10 "no worktree lifecycle action is proposed" ;;
+    *MOVE*|*REMOVE*|*REPAIR*|*BRANCH-DELETE*)
+      if [ "$cleanup_authorized" != "1" ]; then
+        emit FAIL C10 "worktree lifecycle action requires explicit cleanup authority"
+      fi
+      worktree_ledger=$(table_text 'Worktree ledger')
+      branch_ledger=$(table_text 'Branch ledger')
+      validate_ledger_headers 'Worktree ledger' "$worktree_ledger" \
+        'Target path' 'Source path' 'Destination path' 'Repository' 'HEAD' 'Branch' 'Registry state' \
+        'Dirty state' 'Untracked paths' 'Stash dependency' 'Unique commits' 'Integration evidence' \
+        'Active process or lease' 'Owner/task' 'Recovery ref' 'Pre-action inventory' \
+        'Post-action verification' 'Disposition' 'Retirement command' 'Action owner'
+      validate_ledger_headers 'Branch ledger' "$branch_ledger" \
+        'Branch' 'Tip SHA' 'Upstream state' 'Attached worktree' 'Owner/task' 'Integration evidence' \
+        'Unique commits' 'Recovery ref' 'Disposition' 'Action owner'
+      validate_worktree_rows "$worktree_ledger" "$lifecycle_upper"
+      validate_branch_rows "$branch_ledger" "$lifecycle_upper"
+      ;;
+    *) emit FAIL C10 "Worktree lifecycle action must be NONE, MOVE, REMOVE, REPAIR, or BRANCH-DELETE" ;;
+  esac
+  fi
+fi
 
 # --- C4: evidence classes ---
 # 4a: every markdown table with a "Class" header column - each data-row cell must be

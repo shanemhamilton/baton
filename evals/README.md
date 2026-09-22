@@ -17,7 +17,7 @@ The first command exercises the repository and installed inline checkers plus th
 
 - `dedupe-corpus.sh [outdir]` — hashes every `docs/handoffs/handoff-*.md` under
   `~/Projects`, keeps one path per content hash, writes `<outdir>/corpus-unique.tsv`.
-- `check.sh [--root DIR] [--baseline] [--quiet] <handoff.md>` — runs C1-C9 against one
+- `check.sh [--root DIR] [--baseline] [--quiet] <continuation-record.md>` — runs C1-C10 against one
   document: C1 file present/non-empty; C2 no "Status: DRAFT"; C3 valid depth and populated
   human-decision, objective, first-action and continuation-stop fields; C4 at least one
   populated Claim/Class/Evidence row, with classes exactly Observed/Derived/Volatile/Unknown;
@@ -25,7 +25,9 @@ The first command exercises the repository and installed inline checkers plus th
   warns instead of failing; an unresolved multi-segment path fails, in both profiles);
   C6 closing sentence resolves to this exact file, not just the same basename; C7 line
   count under the declared depth's ceiling; C8 model IDs carry provenance; C9 warns on
-  secret-shaped strings without printing the match. Prints one `PASS|FAIL|WARN|INFO <id>
+  secret-shaped strings without printing the match. C10 binds a Git record to its declared
+  checkout tuple and checks canonical-record, cleanup, lifecycle-ledger, and cross-checkout
+  receiver-readback requirements. Prints one `PASS|FAIL|WARN|INFO <id>
   <detail>` line per check then `SUMMARY fail=N warn=N pass=N file=<path>`; exits 0 iff
   `fail=0`. `--baseline` is the historical profile: new content/truth requirements,
   C4/C6/C8, and a compact document's missing depth grade as WARN/INFO instead of FAIL.
@@ -38,15 +40,16 @@ The first command exercises the repository and installed inline checkers plus th
   `.tmp/evals/runs/<run-id>/`, re-links the `multi-repo-worktree` scenario's worktree so
   it works from the copy, installs the skill at `<workdir>/.agents/skills/baton/SKILL.md`
   for Codex discovery, rewrites `prompt.txt` to point at the run copy and the installed
-  skill, and records the skill hash, starting repository identity and existing handoff
+  skill, and records the skill hash, starting repository identity and existing continuation-record
   hashes in schema-versioned `meta.json`. Existing run directories are never overwritten.
 - `run-scenario.sh codex <run-id> <model>` — runs `codex exec` against the prepared run's
   workdir with that prompt, saves the transcript to `codex.log` and the final message to
   `last-message.txt`, records exit code/wall-clock seconds into `meta.json`, and returns
   the author's actual exit status. A retry refreshes the artifact baseline first.
-- `run-scenario.sh check <run-id>` — resolves the handoff named by the final message
-  within the owning checkout's `docs/handoffs` directory. Rejects unchanged preexisting
-  artifacts, changed skill contents, failed authors, file/message mismatches, and checker
+- `run-scenario.sh check <run-id>` — resolves the local continuation record named by the final
+  message within the prepared run. It accepts a fresh self-bound record selected by repository
+  policy, including a native plan or playbook, and rejects unchanged preexisting records,
+  changed skill contents, failed authors, file/message mismatches, and checker
   failures. Writes `result.json` with the verdict and artifact hashes, `report.md`, and
   the existing index TSV columns. Returns nonzero on failure. Old metadata without an
   artifact baseline requires a fresh `prepare`; it cannot prove artifact freshness.
