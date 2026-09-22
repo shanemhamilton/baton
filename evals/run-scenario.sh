@@ -173,11 +173,12 @@ repo_root = git("rev-parse", "--show-toplevel")
 if repo_root and run_dir not in pathlib.Path(repo_root).resolve().parents:
     repo_root = None  # a non-Git fixture must not inherit the outer Baton checkout
 initial = {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest()
-           for p in run_dir.glob("**/docs/handoffs/*.md") if p.is_file()}
+           for p in run_dir.glob("**/*.md")
+           if p.is_file() and ".agents/skills/" not in p.relative_to(run_dir).as_posix()}
 data = {
-    "schema_version": 2,
+    "schema_version": 3,
     "prepared_at_ns": time.time_ns(),
-    "initial_handoffs": initial,
+    "initial_records": initial,
     "starting_repo": {"root": repo_root,
                       "head": git("rev-parse", "HEAD") if repo_root else None,
                       "branch": git("symbolic-ref", "--short", "HEAD") if repo_root else None,
@@ -220,8 +221,9 @@ cmd_codex() {
 import hashlib, json, pathlib, sys
 path, run = map(pathlib.Path, sys.argv[1:])
 meta = json.loads(path.read_text())
-meta["initial_handoffs"] = {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest()
-                            for p in run.glob("**/docs/handoffs/*.md") if p.is_file()}
+meta["initial_records"] = {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest()
+                           for p in run.glob("**/*.md")
+                           if p.is_file() and ".agents/skills/" not in p.relative_to(run).as_posix()}
 path.write_text(json.dumps(meta, indent=2) + "\n")
 PY_BASELINE
   meta_set "$meta" harness codex model "$model" exit_code pending
@@ -279,7 +281,7 @@ def last_line(path):
     return lines[i].strip(), i != len(lines) - 1
 
 # Old results cannot prove freshness: re-prepare rather than silently grade them.
-if meta.get("schema_version") != 2 or "initial_handoffs" not in meta:
+if meta.get("schema_version") != 3 or "initial_records" not in meta:
     errors.append("legacy metadata has no artifact baseline; prepare a new run")
 if not inside(workdir, run):
     errors.append("workdir is outside this run")
@@ -297,7 +299,7 @@ result["last_message_sha256"] = digest(message) if message.is_file() else None
 if message.is_file() and len([line for line in message.read_text().splitlines() if line.strip()]) != 1:
     errors.append("final message must contain only the closing sentence")
 result["trailing_text"] = trailing
-match = re.fullmatch(r"(?:\*\*)?Read (.+\.md) and do (.+)\.(?:\*\*)?", closing)
+match = re.fullmatch(r"(?:\*\*)?Read (.+) and do (.+)\.(?:\*\*)?", closing)
 if not match:
     errors.append("final message does not end with the closing sentence")
 else:
@@ -312,8 +314,8 @@ else:
     else:
         result["handoff_found"] = True
         result["handoff_sha256"] = digest(handoff)
-        if meta.get("initial_handoffs", {}).get(str(handoff)) == result["handoff_sha256"]:
-            errors.append("closing sentence selects an unchanged preexisting handoff")
+        if meta.get("initial_records", {}).get(str(handoff)) == result["handoff_sha256"]:
+            errors.append("closing sentence selects an unchanged preexisting continuation record")
         file_closing, _ = last_line(handoff)
         result["handoff_ends_with_closing"] = file_closing == closing
         if file_closing != closing:
@@ -330,9 +332,6 @@ else:
         check_root = pathlib.Path(root.stdout.strip()).resolve() if root.returncode == 0 else workdir
         if not inside(check_root, run):
             check_root = workdir  # non-Git scratch dirs can inherit the outer Baton repository
-        # Keep accepted artifacts inside the same scope captured by the freshness baseline.
-        if handoff.parent != check_root / "docs" / "handoffs":
-            errors.append("handoff must be in the owning checkout docs/handoffs directory")
         checked = subprocess.run(["bash", sys.argv[2], "--root", str(check_root), str(handoff)],
                                  capture_output=True, text=True)
         (run / "check.txt").write_text(checked.stdout + checked.stderr)

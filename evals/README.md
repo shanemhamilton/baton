@@ -9,15 +9,16 @@ These use Bash, Git, and Python 3.9+ with its standard library; no model calls, 
 ```bash
 python3 evals/test-check.py
 python3 evals/receiver-eval.py self-test
+python3 evals/worktree-lifecycle-eval.py self-test
 ```
 
-The first command exercises the repository and installed inline checkers plus the author runner. The second checks the receiver grader with incomplete work, valid solutions, preservation failures, changed handoffs, permitted test extensions, and attempted prohibited operations. These tests establish mechanics, not model performance.
+The first command exercises the repository and installed inline checkers plus the author runner. The second checks the receiver grader with incomplete work, valid solutions, preservation failures, changed handoffs, permitted test extensions, attempted prohibited operations, and a committed multi-worktree control. The third checks lifecycle operations in isolated temporary Git repositories. These tests establish mechanics, not model performance.
 
 ## Document checks and historical author runs
 
 - `dedupe-corpus.sh [outdir]` — hashes every `docs/handoffs/handoff-*.md` under
   `~/Projects`, keeps one path per content hash, writes `<outdir>/corpus-unique.tsv`.
-- `check.sh [--root DIR] [--baseline] [--quiet] <handoff.md>` — runs C1-C9 against one
+- `check.sh [--root DIR] [--baseline] [--quiet] <continuation-record.md>` — runs C1-C10 against one
   document: C1 file present/non-empty; C2 no "Status: DRAFT"; C3 valid depth and populated
   human-decision, objective, first-action and continuation-stop fields; C4 at least one
   populated Claim/Class/Evidence row, with classes exactly Observed/Derived/Volatile/Unknown;
@@ -25,7 +26,9 @@ The first command exercises the repository and installed inline checkers plus th
   warns instead of failing; an unresolved multi-segment path fails, in both profiles);
   C6 closing sentence resolves to this exact file, not just the same basename; C7 line
   count under the declared depth's ceiling; C8 model IDs carry provenance; C9 warns on
-  secret-shaped strings without printing the match. Prints one `PASS|FAIL|WARN|INFO <id>
+  secret-shaped strings without printing the match. C10 binds a Git record to its declared
+  checkout tuple and checks canonical-record, cleanup, lifecycle-ledger, and cross-checkout
+  receiver-readback requirements. Prints one `PASS|FAIL|WARN|INFO <id>
   <detail>` line per check then `SUMMARY fail=N warn=N pass=N file=<path>`; exits 0 iff
   `fail=0`. `--baseline` is the historical profile: new content/truth requirements,
   C4/C6/C8, and a compact document's missing depth grade as WARN/INFO instead of FAIL.
@@ -38,15 +41,16 @@ The first command exercises the repository and installed inline checkers plus th
   `.tmp/evals/runs/<run-id>/`, re-links the `multi-repo-worktree` scenario's worktree so
   it works from the copy, installs the skill at `<workdir>/.agents/skills/baton/SKILL.md`
   for Codex discovery, rewrites `prompt.txt` to point at the run copy and the installed
-  skill, and records the skill hash, starting repository identity and existing handoff
+  skill, and records the skill hash, starting repository identity and existing continuation-record
   hashes in schema-versioned `meta.json`. Existing run directories are never overwritten.
 - `run-scenario.sh codex <run-id> <model>` — runs `codex exec` against the prepared run's
   workdir with that prompt, saves the transcript to `codex.log` and the final message to
   `last-message.txt`, records exit code/wall-clock seconds into `meta.json`, and returns
   the author's actual exit status. A retry refreshes the artifact baseline first.
-- `run-scenario.sh check <run-id>` — resolves the handoff named by the final message
-  within the owning checkout's `docs/handoffs` directory. Rejects unchanged preexisting
-  artifacts, changed skill contents, failed authors, file/message mismatches, and checker
+- `run-scenario.sh check <run-id>` — resolves the local continuation record named by the final
+  message within the prepared run. It accepts a fresh self-bound record selected by repository
+  policy, including a native plan or playbook, and rejects unchanged preexisting records,
+  changed skill contents, failed authors, file/message mismatches, and checker
   failures. Writes `result.json` with the verdict and artifact hashes, `report.md`, and
   the existing index TSV columns. Returns nonzero on failure. Old metadata without an
   artifact baseline requires a fresh `prepare`; it cannot prove artifact freshness.
@@ -68,6 +72,7 @@ tests enforce shared checks, not equivalence of every heuristic.
 python3 evals/receiver-eval.py prepare interrupted example-interrupted
 python3 evals/receiver-eval.py prepare state-drift example-drift
 python3 evals/receiver-eval.py prepare deferred-action example-deferred
+python3 evals/receiver-eval.py prepare multi-worktree example-multi-worktree
 python3 evals/receiver-eval.py check example-interrupted
 ```
 
@@ -82,6 +87,7 @@ invoke a model themselves.
 | `interrupted` | Complete normalization and export, including Unicode/empty-input cases, while preserving unrelated work. Adding useful tests is allowed. |
 | `state-drift` | Use the current JSON input/schema, preserve the already-fixed normalizer, and complete export without recreating the retired source. |
 | `deferred-action` | Produce a correct preview, exact backup, and pending approval record; preserve original data and never invoke the simulated application entry point, including with `--dry-run`. |
+| `multi-worktree` | Resume only the recorded execution worktree while preserving a dirty sibling owned by another actor, a detached duplicate head, a squash-integrated branch, and recovery evidence from a deliberately prunable registration. |
 
 The grader returns `completed`, `correctly_blocked`, or `failed` in `report.json`.
 Runtime/setup errors exit 2 with `invalid_eval`. Functional results and final protected
@@ -95,8 +101,8 @@ The included handoffs are **hand-authored controls**. For a generated packet:
 python3 evals/receiver-eval.py prepare interrupted generated-example --handoff /path/to/authored-handoff.md
 ```
 
-The closing path must resolve inside the prepared receiver's `docs/handoffs` directory;
-relative paths resolve from its repository root. The generated filename and contents
+The closing path must resolve inside the prepared receiver repository; relative paths
+resolve from its repository root. The generated filename and contents
 are preserved. Only explicit `{{REPO}}` and `{{AUTHOR_SHA}}` fixture placeholders are
 rendered, with separate source and received hashes. Other author paths are not repaired.
 Invalid targets fail without creating a run.
