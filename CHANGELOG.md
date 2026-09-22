@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-22
+
+### Added
+
+- Repository-selected canonical continuation records replace mandatory parallel handoff files. Records carry task identity, lifecycle, lineage, revalidation triggers, and one exact receiver start instruction.
+- Git continuation records carry a structured checkout identity and conditional worktree and branch ledgers. Cleanup requires explicit authority, recovery evidence, and a per-row action.
+- A public five-case lifecycle suite and a committed multi-worktree receiver fixture cover safe linked-worktree moves, prunable recovery, unique gone-upstream branches, detached lanes, cross-checkout transfer proof, and preservation of unrelated lanes.
+
+### Changed
+
+- The checker binds continuation records to their physical checkout, validates receiver-start and final-line identity, accepts canonical records without a `.md` extension, and canonicalizes path aliases before comparing checkout fields.
+- Cross-checkout handoffs require a byte-identical receiver copy and SHA-256 readback. Hashing uses `sha256sum` when `shasum` is unavailable.
+- Non-forced `git worktree remove <path>` is permitted when no repository-native retirement command exists and the ledger proves authority, recovery, and verification; forced removal, pruning, cleaning, and filesystem moves remain rejected.
+
+### Verification
+
+- `python3 -m unittest evals/test-check.py` passed 32 tests; `python3 evals/receiver-eval.py self-test` passed all controls, including the multi-worktree fixture; and `python3 evals/worktree-lifecycle-eval.py self-test` passed 5 tests.
+- Shell syntax and whitespace checks passed. An independent re-review verified all eight follow-up findings before merge.
+
 ## [2.1.0] - 2026-09-05
 
 ### Added
@@ -133,7 +152,8 @@ A rewrite of the skill file from 475 lines down to 210.
 - Recommend a missing connector through a human install-or-defer gate, with setup and fallback paths for both Claude and Codex.
 - Route bounded research, mechanical coding, and test execution to cheaper models, while reserving orchestration, synthesis, and review for capable models.
 
-[Unreleased]: https://github.com/shanemhamilton/baton/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/shanemhamilton/baton/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/shanemhamilton/baton/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/shanemhamilton/baton/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/shanemhamilton/baton/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/shanemhamilton/baton/compare/v1.2.0...v2.0.0
